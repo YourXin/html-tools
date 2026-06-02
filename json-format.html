@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON压缩转义工具</title>
+  <style>
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      color: #333;
+    }
+
+    textarea {
+      width: 100%;
+      height: 400px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      resize: vertical;
+      box-sizing: border-box;
+      background-color: #fff;
+    }
+
+    .error-tip {
+      color: red;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    .button-bar {
+      margin-top: 15px;
+    }
+
+    .button-bar button {
+      background-color: #4a90e2;
+      border: none;
+      color: white;
+      padding: 10px 16px;
+      margin: 5px 4px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s ease;
+    }
+
+    .button-bar button:hover {
+      background-color: #357ab8;
+    }
+
+    .button-bar button:active {
+      background-color: #2d639b;
+    }
+
+    .button-bar button.copy {
+      background-color: #4caf50;
+    }
+
+    .button-bar button.copy:hover {
+      background-color: #45a045;
+    }
+
+    .button-bar button.copy:active {
+      background-color: #3b8c3b;
+    }
+  </style>
+</head>
+<body>
+  <h2>JSON压缩转义工具</h2>
+  <textarea id="jsonInput" placeholder="粘贴或输入JSON内容..."></textarea>
+  <div id="errorTip" class="error-tip"></div>
+
+  <div class="button-bar">
+    <button onclick="formatJson()">转义</button>
+    <button onclick="minifyJson()">压缩</button>
+    <button onclick="formatAndMinify()">压缩并转义</button>
+    <button onclick="unescapeJson()">去除转义</button>
+    <button onclick="unicodeToCn()">Unicode转中文</button>
+    <button onclick="cnToUnicode()">中文转Unicode</button>
+    <button onclick="cnPunctToEn()">中文符号转英文符号</button>
+    <button class="copy" onclick="copyToClipboard()">复制</button>
+  </div>
+
+  <script>
+    const textarea = document.getElementById('jsonInput');
+    const errorTip = document.getElementById('errorTip');
+
+    function showError(msg) {
+      errorTip.textContent = msg;
+    }
+
+    function clearError() {
+      errorTip.textContent = '';
+    }
+
+    // 自动格式化（仅当合法时）
+    textarea.addEventListener('input', () => {
+      try {
+        const json = JSON.parse(textarea.value);
+        textarea.value = JSON.stringify(json, null, 2);
+        clearError();
+      } catch (e) {
+        showError("无效的 JSON 数据");
+      }
+    });
+
+    function formatJson() {
+      try {
+        const obj = JSON.parse(textarea.value);
+        textarea.value = JSON.stringify(obj, null, 2);
+        clearError();
+      } catch (e) {
+        showError("无效的 JSON 数据");
+      }
+    }
+
+    function minifyJson() {
+      try {
+        const obj = JSON.parse(textarea.value);
+        textarea.value = JSON.stringify(obj);
+        clearError();
+      } catch (e) {
+        showError("无效的 JSON 数据");
+      }
+    }
+
+    function formatAndMinify() {
+      try {
+        const obj = JSON.parse(textarea.value);
+        textarea.value = JSON.stringify(obj);
+        clearError();
+      } catch (e) {
+        showError("无效的 JSON 数据");
+      }
+    }
+
+    function unescapeJson() {
+      try {
+        textarea.value = JSON.parse('"' + textarea.value.replace(/"/g, '\\"') + '"');
+        clearError();
+      } catch (e) {
+        showError("转义失败");
+      }
+    }
+
+    function unicodeToCn() {
+      textarea.value = textarea.value.replace(/\\u[\dA-Fa-f]{4}/g, match =>
+        String.fromCharCode(parseInt(match.replace("\\u", ""), 16))
+      );
+      clearError();
+    }
+
+    function cnToUnicode() {
+      textarea.value = textarea.value.replace(/[\u4e00-\u9fa5]/g, ch =>
+        "\\u" + ch.charCodeAt(0).toString(16).padStart(4, '0')
+      );
+      clearError();
+    }
+
+    function cnPunctToEn() {
+      const map = {
+        '，': ',', '。': '.', '！': '!', '？': '?', '：': ':',
+        '；': ';', '（': '(', '）': ')', '【': '[', '】': ']',
+        '“': '"', '”': '"', '‘': "'", '’': "'", '、': ','
+      };
+      textarea.value = textarea.value.replace(/[\u3000-\u303F\uFF00-\uFFEF]/g, ch => map[ch] || ch);
+      clearError();
+    }
+
+    function copyToClipboard() {
+      textarea.select();
+      document.execCommand('copy');
+      clearError();
+      // 可选：添加绿色小提示
+      errorTip.style.color = 'green';
+      errorTip.textContent = "已复制到剪贴板";
+      setTimeout(() => {
+        errorTip.textContent = '';
+        errorTip.style.color = 'red';
+      }, 1500);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>图片压缩工具</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .drop-zone {
+      width: 100%; padding: 40px; border: 2px dashed #ccc;
+      text-align: center; color: #888; cursor: pointer;
+    }
+    .image-preview {
+      margin-top: 20px;
+      display: flex; gap: 20px; align-items: center;
+    }
+    img { max-width: 300px; max-height: 300px; }
+    .controls { margin-top: 20px; }
+    input[type="range"] { width: 300px; }
+  </style>
+</head>
+<body>
+  <h2>图片压缩工具</h2>
+  <div class="drop-zone" id="drop-zone">将图片拖拽到此处上传</div>
+
+  <div class="controls" style="display:none;" id="controls">
+    <label>目标大小 (KB): 
+      <input type="number" id="targetSizeInput" min="10" value="50"> KB
+    </label><br>
+    <input type="range" id="sizeRange" min="10" max="1000" value="50">
+    <button id="downloadBtn">下载压缩图片</button>
+  </div>
+
+  <div class="image-preview" id="preview" style="display:none;">
+    <div>
+      <p>原图：</p>
+      <img id="originalImage">
+    </div>
+    <div>
+      <p>压缩后：</p>
+      <img id="compressedImage">
+      <p id="compressedInfo"></p>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const originalImage = document.getElementById('originalImage');
+    const compressedImage = document.getElementById('compressedImage');
+    const compressedInfo = document.getElementById('compressedInfo');
+    const targetSizeInput = document.getElementById('targetSizeInput');
+    const sizeRange = document.getElementById('sizeRange');
+    const controls = document.getElementById('controls');
+    const preview = document.getElementById('preview');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let originalFile = null;
+    let compressedBlob = null;
+
+    // 拖拽上传处理
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#000';
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.borderColor = '#ccc';
+    });
+
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#ccc';
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        originalFile = file;
+        const reader = new FileReader();
+        reader.onload = () => {
+          originalImage.src = reader.result;
+          controls.style.display = 'block';
+          preview.style.display = 'flex';
+          compressImage();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // 控制目标大小变化
+    targetSizeInput.addEventListener('input', () => {
+      sizeRange.value = targetSizeInput.value;
+      compressImage();
+    });
+
+    sizeRange.addEventListener('input', () => {
+      targetSizeInput.value = sizeRange.value;
+      compressImage();
+    });
+
+    // 压缩图片函数
+    function compressImage() {
+      if (!originalFile) return;
+
+      const targetSizeKB = parseInt(targetSizeInput.value);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        let quality = 0.95;
+        let step = 0.05;
+
+        const tryCompress = () => {
+          canvas.toBlob(blob => {
+            const sizeKB = blob.size / 1024;
+            if (sizeKB > targetSizeKB && quality > 0.05) {
+              quality -= step;
+              tryCompress();
+            } else {
+              compressedBlob = blob;
+              compressedImage.src = URL.createObjectURL(blob);
+              compressedInfo.textContent = `压缩后大小：${sizeKB.toFixed(1)} KB (质量: ${quality.toFixed(2)})`;
+            }
+          }, 'image/jpeg', quality);
+        };
+
+        tryCompress();
+      };
+      img.src = URL.createObjectURL(originalFile);
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      if (!compressedBlob) return;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(compressedBlob);
+      link.download = 'compressed.jpg';
+      link.click();
+    });
+  </script>
+</body>
+</html>

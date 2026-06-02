@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>JPEG压缩工具（保留EXIF、去除JFIF）</title>
+  <script src="https://cdn.jsdelivr.net/npm/piexifjs"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .drop-zone {
+      width: 100%; padding: 40px; border: 2px dashed #ccc;
+      text-align: center; color: #888; cursor: pointer; margin-bottom: 20px;
+    }
+    .drop-zone.hover { border-color: #000; }
+    .preview-area img { max-width: 300px; max-height: 300px; margin-right: 20px; }
+    .preview-area { display: flex; gap: 20px; align-items: center; }
+  </style>
+</head>
+<body>
+  <h2>JPEG压缩工具（保留 EXIF 且无 JFIF 段）</h2>
+
+  <div class="drop-zone" id="drop-zone">将图片拖拽到此处上传</div>
+
+  <div id="controls" style="display: none;">
+    <label>目标大小 (KB): 
+      <input type="number" id="targetSize" value="100" min="10" step="10"> KB
+    </label><br>
+    <input type="range" id="sizeSlider" min="10" max="1000" value="100" style="width: 300px;"><br>
+    <button id="download">下载压缩图像</button>
+  </div>
+
+  <div class="preview-area" id="preview" style="display: none;">
+    <div>
+      <p>原图：</p>
+      <img id="originalImage">
+    </div>
+    <div>
+      <p>压缩图：</p>
+      <img id="compressedImage">
+      <p id="info"></p>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const originalImage = document.getElementById('originalImage');
+    const compressedImage = document.getElementById('compressedImage');
+    const info = document.getElementById('info');
+    const controls = document.getElementById('controls');
+    const preview = document.getElementById('preview');
+    const targetSizeInput = document.getElementById('targetSize');
+    const sizeSlider = document.getElementById('sizeSlider');
+    const downloadBtn = document.getElementById('download');
+
+    let originalExif = null;
+    let compressedDataURL = null;
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('hover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('hover');
+    });
+
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('hover');
+
+      const file = e.dataTransfer.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
+
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const base64Data = reader.result;
+        try {
+          originalExif = piexif.load(base64Data);
+        } catch (err) {
+          originalExif = {}; // 没有EXIF也不报错
+        }
+
+        originalImage.src = base64Data;
+        compressImage(base64Data);
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+    // 控制联动
+    targetSizeInput.addEventListener('input', () => {
+      sizeSlider.value = targetSizeInput.value;
+      if (originalImage.src) compressImage(originalImage.src);
+    });
+
+    sizeSlider.addEventListener('input', () => {
+      targetSizeInput.value = sizeSlider.value;
+      if (originalImage.src) compressImage(originalImage.src);
+    });
+
+    function compressImage(dataURL) {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const targetKB = parseInt(targetSizeInput.value);
+        let quality = 0.95;
+
+        function tryCompress() {
+          const tempDataURL = canvas.toDataURL('image/jpeg', quality);
+          const sizeKB = atob(tempDataURL.split(',')[1]).length / 1024;
+          if (sizeKB > targetKB && quality > 0.05) {
+            quality -= 0.05;
+            tryCompress();
+          } else {
+            const exifStr = piexif.dump(originalExif || {});
+            const withExif = piexif.insert(exifStr, tempDataURL);
+            const noJFIF = stripJFIFSegment(withExif);
+
+            compressedImage.src = noJFIF;
+            compressedDataURL = noJFIF;
+            info.textContent = `压缩后：${sizeKB.toFixed(1)} KB，质量：${quality.toFixed(2)}`;
+            controls.style.display = 'block';
+            preview.style.display = 'flex';
+          }
+        }
+
+        tryCompress();
+      };
+      img.src = dataURL;
+    }
+
+    function stripJFIFSegment(dataURL) {
+      const bin = atob(dataURL.split(',')[1]);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+
+      if (bytes[2] === 0xFF && bytes[3] === 0xE0) {
+        const app0Len = (bytes[4] << 8) + bytes[5];
+        const stripped = new Uint8Array(bytes.length - app0Len - 2);
+        stripped.set(bytes.subarray(0, 2), 0); // FFD8
+        stripped.set(bytes.subarray(2 + app0Len + 2), 2); // 跳过 APP0
+
+        const strippedBase64 = btoa(String.fromCharCode(...stripped));
+        return 'data:image/jpeg;base64,' + strippedBase64;
+      }
+      return dataURL;
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      if (!compressedDataURL) return;
+      const a = document.createElement('a');
+      a.href = compressedDataURL;
+      a.download = 'compressed_clean.jpg';
+      a.click();
+    });
+  </script>
+</body>
+</html>

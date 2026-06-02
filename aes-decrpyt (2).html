@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AES-128-CBC 解密工具</title>
+  <style>
+    body { font-family: Arial; padding: 20px; max-width: 600px; margin: auto; }
+    textarea, input { width: 100%; padding: 8px; margin: 8px 0; }
+    button { padding: 10px 20px; font-size: 16px; }
+    .output { white-space: pre-wrap; word-wrap: break-word; background: #f0f0f0; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h2>AES-128-CBC 解密工具</h2>
+
+  <label for="key">密钥（16字节十六进制）</label>
+  <input id="key" placeholder="如：00112233445566778899aabbccddeeff">
+
+  <label for="iv">IV（初始化向量，16字节十六进制）</label>
+  <input id="iv" placeholder="如：0102030405060708090a0b0c0d0e0f10">
+
+  <label for="ciphertext">密文（Base64 编码）</label>
+  <textarea id="ciphertext" rows="4" placeholder="Base64 编码的密文"></textarea>
+
+  <button onclick="decrypt()">解密</button>
+
+  <h3>解密结果：</h3>
+  <div class="output" id="output"></div>
+
+  <script>
+    function hexToBytes(hex) {
+      const bytes = new Uint8Array(hex.length / 2);
+      for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+      }
+      return bytes;
+    }
+
+    async function decrypt() {
+      const keyHex = document.getElementById("key").value.trim();
+      const ivHex = document.getElementById("iv").value.trim();
+      const ciphertextBase64 = document.getElementById("ciphertext").value.trim();
+      const outputEl = document.getElementById("output");
+      outputEl.textContent = "";
+
+      if (keyHex.length !== 32 || ivHex.length !== 32) {
+        outputEl.textContent = "密钥和 IV 必须是 16 字节（32位十六进制）";
+        return;
+      }
+
+      try {
+        const keyBytes = hexToBytes(keyHex);
+        const ivBytes = hexToBytes(ivHex);
+        const ciphertext = Uint8Array.from(atob(ciphertextBase64), c => c.charCodeAt(0));
+
+        const cryptoKey = await crypto.subtle.importKey(
+          "raw",
+          keyBytes,
+          { name: "AES-CBC" },
+          false,
+          ["decrypt"]
+        );
+
+        const decrypted = await crypto.subtle.decrypt(
+          { name: "AES-CBC", iv: ivBytes },
+          cryptoKey,
+          ciphertext
+        );
+
+        const decoder = new TextDecoder();
+        outputEl.textContent = decoder.decode(decrypted);
+      } catch (e) {
+        outputEl.textContent = "解密失败: " + e.message;
+      }
+    }
+  </script>
+</body>
+</html>

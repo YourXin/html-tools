@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>SQL生成器</title>
+  <style>
+    textarea, input { width: 100%; margin-top: 0.5em; margin-bottom: 1em; }
+    textarea { height: 150px; }
+    pre { background: #f0f0f0; padding: 1em; white-space: pre-wrap; word-wrap: break-word; }
+    body { font-family: Consolas, monospace; margin: 2em; }
+    label { font-weight: bold; display: block; margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <h2>SQL 插入语句生成器</h2>
+
+  <label>起始 ID（例如：202507180001）：</label>
+  <input type="text" id="startId" value="202507180001" />
+
+  <label>输入数据（每行三列：trade_order_main_id trade_order_product_coupon_id buyCount）：</label>
+  <textarea id="inputData" placeholder="1152905252157001728 1152905252169584640 1"></textarea>
+
+  <button onclick="generateSQL()">生成 SQL</button>
+
+  <h3>生成结果：</h3>
+  <pre id="outputSQL"></pre>
+
+ <h3>查询未发放的SQL：</h3>
+ <pre>
+SELECT
+	trade_order_main_id,
+	wx_trade_order_product_coupon.id,
+	buy_count 
+FROM
+	`wx_trade_order_product_coupon` 
+WHERE
+	trade_order_main_id IN ( SELECT id FROM `wx_trade_order_main` WHERE `order_status` = 'COMPLETE' ) 
+	AND id NOT IN (
+	SELECT
+		trade_order_product_coupon_id 
+FROM
+	wx_trade_order_coupon_detail)</pre>
+
+  <script>
+    function generateSQL() {
+      const startIdStr = document.getElementById('startId').value.trim();
+      const input = document.getElementById('inputData').value.trim();
+      const lines = input.split('\n');
+      const fixedTime = '2025-07-17 11:28:00';
+      const sqls = [];
+
+      if (!/^\d{12}$/.test(startIdStr)) {
+        alert("起始 ID 必须是12位数字，例如：202507180001");
+        return;
+      }
+
+      let currentId = parseInt(startIdStr);
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const [orderId, couponId, buyCountStr] = line.trim().split(/\s+/);
+        const buyCount = parseInt(buyCountStr);
+
+        if (!orderId || !couponId || isNaN(buyCount)) continue;
+
+        for (let i = 1; i <= buyCount; i++) {
+          const id = String(currentId).padStart(12, '0');
+          const xid = `${orderId}-${i}`;
+
+          const sql = `INSERT INTO \`sail_onlineshop\`.\`wx_trade_order_coupon_detail\` (` +
+                      `\`id\`, \`trade_order_main_id\`, \`trade_order_product_coupon_id\`, ` +
+                      `\`coupon_status\`, \`remark\`, \`create_time\`, \`update_time\`, \`xid\`) VALUES\n` +
+                      `(${id}, ${orderId}, ${couponId}, 'UNSYNC', '', '${fixedTime}', '${fixedTime}', '${xid}');`;
+          sqls.push(sql);
+          currentId++;
+        }
+      }
+
+      document.getElementById('outputSQL').textContent = sqls.join('\n\n');
+    }
+  </script>
+</body>
+</html>

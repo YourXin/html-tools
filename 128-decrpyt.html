@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AES 解密工具（自动清洗 Base64）</title>
+  <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.js"></script>
+  <style>
+    body { font-family: Consolas, monospace; margin: 40px; background: #f6f7fb; color: #333; }
+    h2 { color: #222; }
+    textarea, input { width: 100%; margin: 8px 0; padding: 10px; font-size: 14px; border-radius: 6px; border: 1px solid #ccc; }
+    button { padding: 10px 20px; background: #007bff; border: none; border-radius: 6px; color: white; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    pre { background: #fff; padding: 15px; border-radius: 6px; border: 1px solid #ddd; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h2>AES 解密工具（自动清洗 Base64）</h2>
+
+  <label>密文：</label>
+  <textarea id="cipherText" rows="10" placeholder="请粘贴密文（支持多行，自动清洗）"></textarea>
+
+  <label>密钥：</label>
+  <input type="text" id="key" placeholder="输入密钥" value="lx9x61_2kR10gj58"/>
+
+  <label>偏移量（IV）：</label>
+  <input type="text" id="iv" placeholder="输入 IV" value="m9_4.76h4d7s87x9"/>
+
+  <button onclick="decrypt()">解密</button>
+
+  <h3>解密结果：</h3>
+  <pre id="result"></pre>
+
+  <script>
+    // 自动清理并修正 Base64 字符串
+ function sanitizeBase64(input) {
+  return input
+    .replace(/\\n|\\r/g, '')        // 去除字面 "\n" "\r"
+    .replace(/[\r\n\s]/g, '')       // 去除真实换行符与空格
+    .replace(/-/g, '+')             // URL-safe Base64 修正
+    .replace(/_/g, '/')             // URL-safe Base64 修正
+    .replace(/[^A-Za-z0-9+/=]/g, '')// 去除非法字符
+    .trim();
+}
+
+
+    function decrypt() {
+  try {
+    const rawCipher = document.getElementById('cipherText').value;
+    const cleaned = sanitizeBase64(rawCipher);
+
+    // ⚠️ 与 Java 的 getBytes("ASCII") 对应
+    const key = CryptoJS.enc.Latin1.parse(document.getElementById('key').value);
+    const iv = CryptoJS.enc.Latin1.parse(document.getElementById('iv').value);
+
+    const decrypted = CryptoJS.AES.decrypt(
+      { ciphertext: CryptoJS.enc.Base64.parse(cleaned) },
+      key,
+      { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }
+    );
+
+    const resultText = decrypted.toString(CryptoJS.enc.Utf8);
+    if (!resultText) throw new Error('解密失败，请检查密钥/IV/密文是否正确');
+    document.getElementById('result').textContent = resultText;
+  } catch (e) {
+    document.getElementById('result').textContent = '❌ 解密失败：' + e.message;
+  }
+}
+
+  </script>
+</body>
+</html>

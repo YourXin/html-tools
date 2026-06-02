@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html> 
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>自增数据生成器</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+    input {
+      padding: 8px;
+      margin: 5px 10px 5px 0;
+      width: 200px;
+    }
+    textarea {
+      width: 100%;
+      height: 300px;
+      margin-top: 20px;
+      font-family: monospace;
+      white-space: pre;
+    }
+    .warning {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h2>自增编号生成器</h2>
+
+  <label>起始值：
+    <input type="text" id="startValue" placeholder="例如 20250717001001">
+  </label><br>
+
+  <label>数量（默认100）：
+    <input type="number" id="countValue" placeholder="默认100">
+  </label><br>
+
+  <label>步长（默认1）：
+    <input type="number" id="stepValue" placeholder="默认1">
+  </label>
+
+  <p class="warning" id="warning"></p>
+
+  <textarea readonly id="output"></textarea>
+
+  <script>
+    const startInput = document.getElementById("startValue");
+    const countInput = document.getElementById("countValue");
+    const stepInput = document.getElementById("stepValue");
+    const output = document.getElementById("output");
+    const warning = document.getElementById("warning");
+
+    const MAX_COUNT = 100000000;
+
+    function generate() {
+      const startStr = startInput.value.trim();
+      if (!/^\d+$/.test(startStr)) {
+        output.value = "";
+        warning.textContent = "请输入合法的数字作为起始值";
+        return;
+      }
+
+      warning.textContent = "";
+
+      let count = parseInt(countInput.value) || 100;
+      let step = parseInt(stepInput.value) || 1;
+
+      if (count > MAX_COUNT) {
+        warning.textContent = `最多支持 ${MAX_COUNT.toLocaleString()} 条数据`;
+        count = MAX_COUNT;
+      }
+
+      const start = BigInt(startStr);
+      const stepBig = BigInt(step);
+      const len = startStr.length;
+      const lines = [];
+
+      for (let i = 0; i < count; i++) {
+        const val = start + BigInt(i) * stepBig;
+        const padded = val.toString().padStart(len, "0");
+        lines.push(padded);
+      }
+
+      output.value = lines.join("\n");
+    }
+
+    startInput.addEventListener("input", generate);
+    countInput.addEventListener("input", generate);
+    stepInput.addEventListener("input", generate);
+  </script>
+</body>
+</html>

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML 工具集</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f7fb;
+      --card-bg: #ffffff;
+      --card-border: #e5e9f0;
+      --text: #1a2233;
+      --text-soft: #5b6478;
+      --text-mute: #8a93a6;
+      --accent: #4a90e2;
+      --accent-soft: #e8f0fb;
+      --tag-bg: #eef1f6;
+      --shadow: 0 2px 12px rgba(20, 30, 60, 0.06);
+      --shadow-hover: 0 6px 24px rgba(20, 30, 60, 0.12);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1422;
+        --card-bg: #1a2034;
+        --card-border: #2a3247;
+        --text: #e8ecf5;
+        --text-soft: #a8b0c3;
+        --text-mute: #6e7891;
+        --accent: #5ea3ee;
+        --accent-soft: #1f3454;
+        --tag-bg: #232b3e;
+        --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+        --shadow-hover: 0 6px 24px rgba(0, 0, 0, 0.5);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 36px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .header p {
+      color: var(--text-soft);
+      font-size: 15px;
+      margin: 0;
+    }
+
+    /* Search */
+    .search-wrap {
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      padding: 16px 0;
+      z-index: 10;
+      margin-bottom: 16px;
+    }
+
+    .search-box {
+      position: relative;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .search-box::before {
+      content: "🔍";
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 14px 16px 14px 44px;
+      font-size: 15px;
+      font-family: inherit;
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      outline: none;
+      box-shadow: var(--shadow);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-box input::placeholder {
+      color: var(--text-mute);
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    /* Category */
+    .category {
+      margin-top: 36px;
+    }
+
+    .category-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 16px;
+      padding-left: 4px;
+    }
+
+    .category-title .icon {
+      font-size: 18px;
+    }
+
+    .category-title .count {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-mute);
+      background: var(--tag-bg);
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    /* Card */
+    .card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      text-decoration: none;
+      color: var(--text);
+      box-shadow: var(--shadow);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      position: relative;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+      border-color: var(--accent);
+    }
+
+    .card .emoji {
+      font-size: 24px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-soft);
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+
+    .card .info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .card .name {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin: 0 0 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card .desc {
+      font-size: 12px;
+      color: var(--text-mute);
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card .arrow {
+      color: var(--text-mute);
+      font-size: 14px;
+      flex-shrink: 0;
+      transition: color 0.15s, transform 0.15s;
+    }
+
+    .card:hover .arrow {
+      color: var(--accent);
+      transform: translateX(2px);
+    }
+
+    /* Empty state */
+    .empty {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-mute);
+    }
+
+    .empty.show { display: block; }
+
+    .empty .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty .msg { font-size: 14px; }
+
+    /* Footer */
+    .footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--card-border);
+      text-align: center;
+      color: var(--text-mute);
+      font-size: 12px;
+    }
+
+    .footer a { color: var(--text-soft); text-decoration: none; }
+    .footer a:hover { color: var(--accent); }
+
+    /* Hidden state for filtering */
+    .card.hidden { display: none; }
+    .category.hidden { display: none; }
+
+    @media (max-width: 600px) {
+      .container { padding: 24px 16px 60px; }
+      .header h1 { font-size: 28px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🛠️ HTML 工具集</h1>
+      <p>常用在线小工具的集合 · 纯前端、零依赖、即开即用</p>
+    </header>
+
+    <div class="search-wrap">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索工具名称或描述..." autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <main id="main">
+      <!-- 加解密 -->
+      <section class="category" data-category="crypto">
+        <h2 class="category-title">
+          <span class="icon">🔐</span>
+          <span>加解密</span>
+          <span class="count">2</span>
+        </h2>
+        <div class="grid">
+          <a class="card" href="128-decrpyt.html" data-name="aes 128 解密 base64 自动 清洗 偏移 iv">
+            <div class="emoji">🔑</div>
+            <div class="info">
+              <div class="name">AES-CBC 解密 (Base64)</div>
+              <div class="desc">自动清洗 Base64 · 兼容 URL-safe · 错误提示</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="aes-decrpyt (2).html" data-name="aes 128 cbc 解密 十六进制 hex native web crypto">
+            <div class="emoji">🔓</div>
+            <div class="info">
+              <div class="name">AES-128-CBC (Hex)</div>
+              <div class="desc">Web Crypto API · 十六进制输入 · 零依赖</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+        </div>
+      </section>
+
+      <!-- JSON 工具 -->
+      <section class="category" data-category="json">
+        <h2 class="category-title">
+          <span class="icon">📦</span>
+          <span>JSON 工具</span>
+          <span class="count">4</span>
+        </h2>
+        <div class="grid">
+          <a class="card" href="json-format.html" data-name="json 压缩 转义 格式化 工具">
+            <div class="emoji">{}</div>
+            <div class="info">
+              <div class="name">JSON 压缩/转义</div>
+              <div class="desc">格式化、压缩、Unicode 互转</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="json_trim.html" data-name="json formatter trim 格式化">
+            <div class="emoji">✂️</div>
+            <div class="info">
+              <div class="name">JSON Formatter</div>
+              <div class="desc">JSON 格式化与精简</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="提取龙珠.html" data-name="json 问答 表格 解析 龙珠">
+            <div class="emoji">🐉</div>
+            <div class="info">
+              <div class="name">JSON 问答表格解析器</div>
+              <div class="desc">从 JSON 提取问答对</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="龙湖-转问答.html" data-name="json 龙湖 转 问答 表格">
+            <div class="emoji">🏠</div>
+            <div class="info">
+              <div class="name">龙湖 JSON 转问答</div>
+              <div class="desc">龙湖数据 JSON 转问答表格</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+        </div>
+      </section>
+
+      <!-- SQL / 数据库 -->
+      <section class="category" data-category="sql">
+        <h2 class="category-title">
+          <span class="icon">🗄️</span>
+          <span>SQL / 数据库</span>
+          <span class="count">4</span>
+        </h2>
+        <div class="grid">
+          <a class="card" href="mybatis-sql.html" data-name="mybatis sql 日志 解析 工具">
+            <div class="emoji">📋</div>
+            <div class="info">
+              <div class="name">MyBatis SQL 解析</div>
+              <div class="desc">从 MyBatis 日志提取 SQL</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="sql2excel.html" data-name="sql 导出 excel 工具 多行 字段">
+            <div class="emoji">📊</div>
+            <div class="info">
+              <div class="name">数据导出 (SQL→Excel)</div>
+              <div class="desc">支持多行字段的导出工具</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="sql_replace.html" data-name="sql 替换 处理">
+            <div class="emoji">🔁</div>
+            <div class="info">
+              <div class="name">SQL 处理</div>
+              <div class="desc">SQL 文本批量替换</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="生成积分商城补发sql.html" data-name="生成 积分商城 补发 sql">
+            <div class="emoji">🎁</div>
+            <div class="info">
+              <div class="name">积分商城补发 SQL</div>
+              <div class="desc">自动生成补发 SQL 语句</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+        </div>
+      </section>
+
+      <!-- 日志 / 调试 -->
+      <section class="category" data-category="logs">
+        <h2 class="category-title">
+          <span class="icon">📜</span>
+          <span>日志 / 调试</span>
+          <span class="count">2</span>
+        </h2>
+        <div class="grid">
+          <a class="card" href="merge_logs_by_time.html" data-name="日志 按 时间 合并 merge">
+            <div class="emoji">⏱️</div>
+            <div class="info">
+              <div class="name">日志按时间合并</div>
+              <div class="desc">多源日志按时间戳对齐</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="堆栈处理.html" data-name="堆栈 处理 stack 保留 com qianfan123">
+            <div class="emoji">📚</div>
+            <div class="info">
+              <div class="name">堆栈过滤</div>
+              <div class="desc">保留 com.qianfan123. 开头的行</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+        </div>
+      </section>
+
+      <!-- 代码处理 -->
+      <section class="category" data-category="code">
+        <h2 class="category-title">
+          <span class="icon">💻</span>
+          <span>代码 / 文本</span>
+          <span class="count">4</span>
+        </h2>
+        <div class="grid">
+          <a class="card" href="sort_code.html" data-name="java 代码 排序 sort">
+            <div class="emoji">🔢</div>
+            <div class="info">
+              <div class="name">Java 代码排序</div>
+              <div class="desc">set 方法按自然顺序排序</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="increase_num1.html" data-name="自增 数据 生成 数字">
+            <div class="emoji">➕</div>
+            <div class="info">
+              <div class="name">自增数据生成器</div>
+              <div class="desc">批量生成自增编号</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="fiddler-raw-to-curl.html" data-name="fiddler raw curl 抓包">
+            <div class="emoji">🌐</div>
+            <div class="info">
+              <div class="name">Fiddler Raw → cURL</div>
+              <div class="desc">Fiddler 原始报文转 cURL</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="random.html" data-name="随机 数字 生成 器 日期 前缀">
+            <div class="emoji">🎲</div>
+            <div class="info">
+              <div class="name">随机数字生成器</div>
+              <div class="desc">支持日期前缀的可控随机数</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+        </div>
+      </section>
+
+      <!-- 图片处理 -->
+      <section class="category" data-category="image">
+        <h2 class="category-title">
+          <span class="icon">🖼️</span>
+          <span>图片处理</span>
+          <span class="count">2</span>
+        </h2>
+        <div class="grid">
+          <a class="card" href="压缩图片.html" data-name="图片 压缩 工具">
+            <div class="emoji">📷</div>
+            <div class="info">
+              <div class="name">图片压缩</div>
+              <div class="desc">在线图片压缩工具</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+          <a class="card" href="压缩图片 (1).html" data-name="jpeg 压缩 保留 exif 去除 jfif">
+            <div class="emoji">🗜️</div>
+            <div class="info">
+              <div class="name">JPEG 压缩 (保 EXIF)</div>
+              <div class="desc">保留 EXIF、去除 JFIF</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+        </div>
+      </section>
+
+      <!-- 文本 / 表格 -->
+      <section class="category" data-category="text">
+        <h2 class="category-title">
+          <span class="icon">📝</span>
+          <span>表格 / 文本</span>
+          <span class="count">1</span>
+        </h2>
+        <div class="grid">
+          <a class="card" href="表格转 Markdown.html" data-name="表格 转 markdown 实时">
+            <div class="emoji">📄</div>
+            <div class="info">
+              <div class="name">表格转 Markdown</div>
+              <div class="desc">实时转换表格为 Markdown</div>
+            </div>
+            <div class="arrow">→</div>
+          </a>
+        </div>
+      </section>
+
+      <div class="empty" id="emptyState">
+        <div class="icon">🔍</div>
+        <div class="msg">没有找到匹配的工具</div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p>
+        共 <span id="totalCount">19</span> 个工具 ·
+        <a href="https://github.com/" target="_blank" rel="noopener">GitHub Pages</a> 托管
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      const searchInput = document.getElementById('searchInput');
+      const categories = document.querySelectorAll('.category');
+      const cards = document.querySelectorAll('.card');
+      const emptyState = document.getElementById('emptyState');
+      const totalCount = document.getElementById('totalCount');
+
+      // Total count from data
+      let total = 0;
+      categories.forEach(cat => {
+        const count = cat.querySelectorAll('.card').length;
+        const badge = cat.querySelector('.count');
+        if (badge) badge.textContent = count;
+        total += count;
+      });
+      totalCount.textContent = total;
+
+      // Search filter
+      function normalize(s) {
+        return (s || '').toString().toLowerCase().trim();
+      }
+
+      function applyFilter() {
+        const q = normalize(searchInput.value);
+        let totalVisible = 0;
+
+        if (!q) {
+          cards.forEach(c => c.classList.remove('hidden'));
+          categories.forEach(cat => cat.classList.remove('hidden'));
+          emptyState.classList.remove('show');
+          return;
+        }
+
+        // Filter cards
+        cards.forEach(card => {
+          const haystack = normalize(card.dataset.name + ' ' + card.textContent);
+          const match = haystack.includes(q);
+          card.classList.toggle('hidden', !match);
+          if (match) totalVisible++;
+        });
+
+        // Hide empty categories
+        categories.forEach(cat => {
+          const visibleCards = cat.querySelectorAll('.card:not(.hidden)');
+          cat.classList.toggle('hidden', visibleCards.length === 0);
+        });
+
+        emptyState.classList.toggle('show', totalVisible === 0);
+      }
+
+      searchInput.addEventListener('input', applyFilter);
+
+      // Keyboard shortcut: "/" focuses search
+      document.addEventListener('keydown', e => {
+        if (e.key === '/' && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+          searchInput.value = '';
+          applyFilter();
+          searchInput.blur();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>保留 at com.qianfan123. 开头的行 — 上下布局</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      margin: 24px;
+      background: #f7f8fb;
+      color: #111827;
+    }
+    h1 { font-size: 18px; margin-bottom: 12px; }
+    .panel {
+      background: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(16,24,40,0.06);
+      margin-bottom: 16px;
+    }
+    label { display:block; margin-bottom:6px; font-weight:600; font-size:13px; }
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      resize: vertical;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.4;
+      border: 1px solid #e6e9ef;
+      border-radius: 6px;
+      background: #fff;
+    }
+    textarea[readonly] { background: #f3f4f6; color: #0f172a; cursor: pointer; }
+    .hint { margin-top:8px; font-size:12px; color:#6b7280; }
+    .counter { font-size:12px; color:#374151; margin-top:8px; text-align:right; }
+    .footer { margin-top:12px; font-size:13px; color:#6b7280; }
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #111827;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <h1>自动过滤 — 仅保留以 <code>at com.qianfan123.</code> 开头的行</h1>
+
+  <div class="panel">
+    <label for="input">输入（多行堆栈或文本）</label>
+    <textarea id="input" placeholder="把堆栈信息粘贴到这里，下方会自动显示结果..."></textarea>
+    <div class="hint">支持粘贴、编辑；会实时处理（无需任何按钮）。</div>
+  </div>
+
+  <div class="panel">
+    <label for="output">输出（点击即自动复制）</label>
+    <textarea id="output" readonly placeholder="符合条件的行会显示在这里，点击即可复制"></textarea>
+    <div class="counter">匹配行数：<span id="count">0</span></div>
+  </div>
+
+  <div class="footer">
+    规则：匹配条件为“行首（允许前导空白）紧接着字样 <code>at</code>，然后空格，再跟 <code>com.qianfan123.</code>”。  
+    例如：<code>at com.qianfan123.xxx.Class.method(...)</code>
+  </div>
+
+  <div id="toast">已复制到剪贴板</div>
+
+  <script>
+    (function () {
+      const inputEl = document.getElementById('input');
+      const outputEl = document.getElementById('output');
+      const countEl = document.getElementById('count');
+      const toastEl = document.getElementById('toast');
+
+      const matchRegex = /^\s*at\s+com\.qianfan123\./;
+
+      function process(text) {
+        if (!text) {
+          outputEl.value = '';
+          countEl.textContent = '0';
+          return;
+        }
+        const lines = text.split(/\r\n|\r|\n/);
+        const kept = lines.filter(line => matchRegex.test(line));
+        outputEl.value = kept.join('\n');
+        countEl.textContent = String(kept.length);
+      }
+
+      inputEl.addEventListener('input', () => process(inputEl.value));
+      document.addEventListener('DOMContentLoaded', () => process(inputEl.value));
+      inputEl.addEventListener('paste', () => {
+        setTimeout(() => process(inputEl.value), 0);
+      });
+
+      // 点击输出框 -> 自动复制
+      outputEl.addEventListener('click', async () => {
+        if (!outputEl.value) return;
+        try {
+          await navigator.clipboard.writeText(outputEl.value);
+          // 显示提示
+          toastEl.classList.add('show');
+          setTimeout(() => toastEl.classList.remove('show'), 1500);
+        } catch (err) {
+          console.error('复制失败:', err);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

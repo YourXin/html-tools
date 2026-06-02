@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON转问答表格</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      font-family: monospace;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #f0f0f0;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>JSON 转 问答表格</h2>
+
+  <textarea id="jsonInput" placeholder="在此粘贴包含 records 的 JSON 数据..."></textarea>
+  <br>
+  <button onclick="convertJSON()">解析 JSON</button>
+  <p id="errorMsg" class="error"></p>
+
+  <table id="faq-table">
+    <thead>
+      <tr>
+        <th>问题</th>
+        <th>答案</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- 表格内容将由 JS 动态生成 -->
+    </tbody>
+  </table>
+
+  <script>
+    function convertJSON() {
+      const input = document.getElementById('jsonInput').value;
+      const tbody = document.querySelector('#faq-table tbody');
+      const errorMsg = document.getElementById('errorMsg');
+
+      tbody.innerHTML = ''; // 清空旧内容
+      errorMsg.textContent = ''; // 清空错误信息
+
+      try {
+        const json = JSON.parse(input);
+
+        const records = json.result?.records;
+        if (!Array.isArray(records)) {
+          throw new Error('未找到有效的 records 数组');
+        }
+
+        records.forEach(record => {
+          const tr = document.createElement('tr');
+
+          const tdQuestion = document.createElement('td');
+          tdQuestion.textContent = record.primary_question || '';
+
+          const tdAnswer = document.createElement('td');
+          tdAnswer.textContent = record.answer || '';
+
+          tr.appendChild(tdQuestion);
+          tr.appendChild(tdAnswer);
+          tbody.appendChild(tr);
+        });
+
+      } catch (err) {
+        errorMsg.textContent = '解析失败：' + err.message;
+      }
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON 问答表格解析器</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 250px;
+      font-family: monospace;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #f0f0f0;
+    }
+
+    .error {
+      color: red;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>JSON 问答表格解析器（支持多结构）</h2>
+  <textarea id="jsonInput" placeholder="粘贴 JSON 数据..."></textarea>
+  <br>
+  <button onclick="parseJSON()">解析 JSON</button>
+  <p id="errorMsg" class="error"></p>
+
+  <table id="faq-table">
+    <thead>
+      <tr>
+        <th>问题</th>
+        <th>答案</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- 动态插入 -->
+    </tbody>
+  </table>
+
+  <script>
+    function parseJSON() {
+      const input = document.getElementById('jsonInput').value;
+      const tbody = document.querySelector('#faq-table tbody');
+      const errorMsg = document.getElementById('errorMsg');
+      tbody.innerHTML = '';
+      errorMsg.textContent = '';
+
+      try {
+        const json = JSON.parse(input);
+        let records = [];
+
+        if (Array.isArray(json.result?.records)) {
+          // 结构1
+          records = json.result.records.map(r => ({
+            question: r.primary_question || '',
+            answer: r.answer || ''
+          }));
+        } else if (Array.isArray(json.result)) {
+          // 结构2
+          records = json.result.map(r => ({
+            question: r.primaryQues || '',
+            answer: r.answer || ''
+          }));
+        } else if (Array.isArray(json.result?.content)) {
+          // 结构3
+          records = json.result.content.map(r => ({
+            question: r.primaryQues || '',
+            answer: r.answer || ''
+          }));
+        } else {
+          throw new Error('未识别的 JSON 结构');
+        }
+
+        if (records.length === 0) {
+          throw new Error('没有找到有效的问答记录');
+        }
+
+        // 渲染表格
+        for (const row of records) {
+          const tr = document.createElement('tr');
+
+          const tdQ = document.createElement('td');
+          tdQ.textContent = row.question;
+
+          const tdA = document.createElement('td');
+          tdA.innerHTML = row.answer;  // 保留 HTML 格式
+
+          tr.appendChild(tdQ);
+          tr.appendChild(tdA);
+          tbody.appendChild(tr);
+        }
+
+      } catch (e) {
+        errorMsg.textContent = '解析失败：' + e.message;
+      }
+    }
+  </script>
+
+</body>
+</html>

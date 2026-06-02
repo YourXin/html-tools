@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>数据导出工具（支持多行字段）</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    textarea { width: 100%; height: 200px; font-family: monospace; }
+    button { margin: 10px 10px 0 0; padding: 10px 20px; }
+    pre {
+      background: #f0f0f0;
+      padding: 10px;
+      white-space: pre-wrap;
+      cursor: pointer;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>粘贴你的表格数据（如从 Navicat 复制）</h2>
+  <textarea id="inputArea" placeholder="粘贴从 Navicat 复制的数据（包含表头）"></textarea>
+
+  <br>
+  <button onclick="exportToExcel()">导出为 Excel</button>
+  <button onclick="exportToMarkdown()">生成 Markdown 表格</button>
+
+  <h3>Markdown 表格预览（点击复制）：</h3>
+  <pre id="markdownOutput" onclick="copyMarkdown()"></pre>
+
+  <script>
+    // 判断行是否是完整的（列数与表头一致）
+    function isValidRow(row, expectedCols) {
+      return row.split('\t').length === expectedCols;
+    }
+
+    function parseRobustTextAreaData() {
+      const text = document.getElementById("inputArea").value;
+      const lines = text.split(/\r?\n/);
+
+      // 临时缓冲行，避免换行打断记录
+      let rows = [];
+      let currentLine = "";
+      let expectedCols = 0;
+
+      for (let line of lines) {
+        if (!currentLine) {
+          currentLine = line;
+        } else {
+          currentLine += '\n' + line;
+        }
+
+        const colCount = currentLine.split('\t').length;
+
+        if (rows.length === 0) {
+          expectedCols = colCount; // 表头列数
+          rows.push(currentLine);
+          currentLine = "";
+        } else if (colCount === expectedCols) {
+          rows.push(currentLine);
+          currentLine = "";
+        }
+      }
+
+      if (currentLine) rows.push(currentLine); // 补最后一行
+
+      // 返回二维数组（带 HTML 换行）
+      return rows.map(row => row.split('\t').map(cell => {
+        // 将字段内的换行替换成 <br>，避免破坏 Markdown 表格格式
+        return cell.replace(/\n/g, "<br>").replace(/\r/g, "");
+      }));
+    }
+
+    function exportToExcel() {
+      const data = parseRobustTextAreaData();
+      const worksheet = XLSX.utils.aoa_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+      XLSX.writeFile(workbook, "navicat_data.xlsx");
+    }
+
+    function exportToMarkdown() {
+      const data = parseRobustTextAreaData();
+      if (data.length === 0) return;
+
+      const colCount = data[0].length;
+      let md = "";
+
+      // 表头
+      md += "| " + data[0].join(" | ") + " |\n";
+      // 分隔线
+      md += "| " + Array(colCount).fill("---").join(" | ") + " |\n";
+
+      // 数据行
+      for (let i = 1; i < data.length; i++) {
+        md += "| " + data[i].join(" | ") + " |\n";
+      }
+
+      document.getElementById("markdownOutput").textContent = md;
+    }
+
+    function copyMarkdown() {
+      const pre = document.getElementById("markdownOutput");
+      const text = pre.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("已复制");
+      });
+    }
+  </script>
+
+</body>
+</html>

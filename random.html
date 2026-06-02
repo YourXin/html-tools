@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>随机数字生成器</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    input, label {
+      width: 100%;
+      padding: 8px 0;
+      margin: 6px 0;
+      box-sizing: border-box;
+    }
+    input[type="checkbox"] {
+      width: auto;
+      margin-right: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>随机数字生成器</h2>
+
+    <label>
+      <input type="checkbox" id="useDatePrefix" checked>
+      使用当天日期作为前缀（YYYYMMDD）
+    </label>
+
+    <label>随机部分长度（默认12位）：</label>
+    <input type="number" id="randomLength" placeholder="例如：12">
+
+    <label>总长度（包括日期前缀，默认20位）：</label>
+    <input type="number" id="totalLength" placeholder="例如：20">
+
+    <button onclick="generateRandomNumber()">生成</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    function padNumber(num, length) {
+      return num.toString().padStart(length, '0');
+    }
+
+    function getTodayDateString() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = padNumber(today.getMonth() + 1, 2);
+      const dd = padNumber(today.getDate(), 2);
+      return `${yyyy}${mm}${dd}`;
+    }
+
+    function generateRandomDigits(length) {
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += Math.floor(Math.random() * 10).toString();
+      }
+      return result;
+    }
+
+    function generateRandomNumber() {
+      const useDate = document.getElementById("useDatePrefix").checked;
+      const dateStr = useDate ? getTodayDateString() : '';
+      const dateLength = useDate ? 8 : 0;
+
+      const randomLengthInput = document.getElementById("randomLength").value;
+      const totalLengthInput = document.getElementById("totalLength").value;
+
+      const defaultRandomLen = 12;
+      const defaultTotalLen = 20;
+
+      let randomLen = parseInt(randomLengthInput) || defaultRandomLen;
+      let totalLen = parseInt(totalLengthInput) || defaultTotalLen;
+
+      if (totalLen < dateLength) {
+        alert("总长度不能小于日期部分（8位）！");
+        return;
+      }
+
+      if (totalLengthInput) {
+        randomLen = totalLen - dateLength;
+      }
+
+      if (randomLen < 0) randomLen = 0;
+
+      const randomPart = generateRandomDigits(randomLen);
+      const fullNumber = dateStr + randomPart;
+
+      document.getElementById("result").textContent = fullNumber;
+    }
+
+    window.onload = generateRandomNumber;
+  </script>
+</body>
+</html>

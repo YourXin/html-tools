@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiddler Raw to CURL</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 10px;
+        }
+        #output {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fiddler Raw to CURL Converter</h1>
+    <textarea id="input" placeholder="Paste your Fiddler raw request here..."></textarea>
+    <h2>CURL Command:</h2>
+    <div id="output" onclick="copyToClipboard()">Click here to copy the CURL command</div>
+
+    <script>
+        function convertToCurl() {
+            const input = document.getElementById('input').value;
+            const output = document.getElementById('output');
+
+            if (!input.trim()) {
+                output.textContent = 'Please paste a valid Fiddler raw request.';
+                return;
+            }
+
+            const lines = input.split('\n');
+            let method = '', url = '', headers = '', data = '';
+            
+            // Extract method and URL
+            const requestLine = lines.shift().trim();
+            const requestParts = requestLine.split(' ');
+            if (requestParts.length >= 2) {
+                method = requestParts[0];
+                url = requestParts[1];
+            }
+
+            // Process headers and body
+            let isBody = false;
+            lines.forEach(line => {
+                line = line.trim();
+
+                if (!isBody && line === '') {
+                    isBody = true;
+                } else if (isBody) {
+                    data += line;
+                } else {
+				    if (!line.toLowerCase().startsWith('content-length:')) {
+                        headers += ` -H "${line}"`;
+                    }
+              
+                }
+            });
+
+            // Construct CURL command
+            let curlCommand = `curl -X ${method} \"${url}"`;
+            if (headers) curlCommand += ` \\\n${headers}`;
+            if (data) curlCommand += ` \\\n-d '${data}'`;
+
+            output.textContent = curlCommand;
+        }
+
+        function copyToClipboard() {
+            const output = document.getElementById('output');
+            navigator.clipboard.writeText(output.textContent).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        function showCopyConfirmation() {
+            const confirmation = document.createElement('div');
+            confirmation.textContent = 'CURL command copied to clipboard!';
+            confirmation.style.position = 'fixed';
+            confirmation.style.bottom = '20px';
+            confirmation.style.right = '20px';
+            confirmation.style.backgroundColor = '#4caf50';
+            confirmation.style.color = 'white';
+            confirmation.style.padding = '10px 20px';
+            confirmation.style.borderRadius = '5px';
+            confirmation.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+            confirmation.style.zIndex = '1000';
+            document.body.appendChild(confirmation);
+
+            setTimeout(() => {
+                document.body.removeChild(confirmation);
+            }, 2000);
+        }
+
+        document.getElementById('output').addEventListener('click', () => {
+            copyToClipboard();
+            showCopyConfirmation();
+        });
+
+        document.getElementById('input').addEventListener('input', convertToCurl);
+    </script>
+</body>
+</html>

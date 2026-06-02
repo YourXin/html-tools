@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Java代码排序</title>
+</head>
+<body>
+  <h2>Java代码排序</h2>
+  <label for="input">输入Java代码：</label>
+  <br>
+  <textarea id="input" rows="10" cols="50"></textarea>
+  <br>
+  <button onclick="sortCode()">排序</button>
+  <br>
+  <label for="output">排序后的代码：</label>
+  <br>
+  <textarea id="output" rows="10" cols="50" readonly></textarea>
+
+  <script>
+    function sortCode() {
+      var inputCode = document.getElementById("input").value;
+      var sortedCode = sortJavaCode(inputCode);
+      document.getElementById("output").value = sortedCode;
+    }
+
+    function sortJavaCode(code) {
+      var lines = code.split("\n");
+      var setMethods = [];
+      var otherMethods = [];
+
+      lines.forEach(function(line) {
+        var trimmedLine = line.trim();
+        if (trimmedLine.startsWith("tradeParam.set")) {
+          setMethods.push(trimmedLine);
+        } else {
+          otherMethods.push(trimmedLine);
+        }
+      });
+
+      setMethods.sort(naturalSort);
+
+      return setMethods.concat(otherMethods).join("\n");
+    }
+
+    function naturalSort(a, b) {
+      var ax = [], bx = [];
+
+      a.replace(/(\d+)|(\D+)/g, function(_, $1, $2) { ax.push([$1 || Infinity, $2 || ""]); });
+      b.replace(/(\d+)|(\D+)/g, function(_, $1, $2) { bx.push([$1 || Infinity, $2 || ""]); });
+
+      while (ax.length && bx.length) {
+        var an = ax.shift();
+        var bn = bx.shift();
+        var nn = (an[0] - bn[0]) || an[1].localeCompare(bn[1]);
+        if (nn) return nn;
+      }
+
+      return ax.length - bx.length;
+    }
+  </script>
+</body>
+</html>

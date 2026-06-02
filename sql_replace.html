@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>SQL处理</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+	<h1>网页功能是在行首添加 '  行末添加  ',</h1>
+	<label for="input-box">请输入数据:</label><br>
+	<textarea id="input-box" rows="10" cols="50"  oninput="replaceText()"></textarea><br>
+	<label for="output-box">处理后的数据:</label><br>
+	<textarea id="output-box" rows="10" cols="50"></textarea>
+	<script>
+		function replaceText() {
+			var input = document.getElementById("input-box");
+			var output = document.getElementById("output-box");
+			var lines = input.value.split("\n");
+			for (var i = 0; i < lines.length; i++) {
+				lines[i] = "'" + lines[i] + "'" ;
+				if (i != lines.length - 1) {
+				   lines[i] = lines[i] + ",";
+				}
+			}
+			var result = lines.join("\n");
+			result = '(\n' + result + ')'
+			output.value = result;
+		}
+	</script>
+</body>
+</html>

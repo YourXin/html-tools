@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>JSON Formatter</title>
+
+  <style>
+    pre {
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+  </style>
+  <script>
+  
+
+  function formatJson() {
+  var input = document.getElementById("input").value;
+  var output = document.getElementById("output");
+
+  try {
+    console.log(input.replace(/\r?\n/g, ""))
+  
+    var parsedJson = JSON.parse(input.replace(/\r?\n/g, ""), jsonBigIntReviver);
+    var formattedJson = JSON.stringify(parsedJson, null, 2);
+    output.innerHTML = formattedJson;
+  } catch (error) {
+    output.innerHTML = "Invalid JSON!";
+  }
+}
+
+function jsonBigIntReviver(key, value) {
+  // 检查值是否为字符串类型
+  if (typeof value === "string") {
+    try {
+      // 尝试将字符串转换为 BigInt 类型
+      return BigInt(value);
+    } catch (error) {
+      // 转换失败则保持原始字符串
+      return value;
+    }
+  }
+  return value;
+}
+
+  </script>
+</head>
+<body>
+  <h1>JSON Formatter 去除空格、换行</h1>
+  <textarea id="input" rows="10" cols="50" oninput="formatJson()"></textarea>
+  <br>
+  <br>
+  <pre id="output"></pre>
+</body>
+</html>
