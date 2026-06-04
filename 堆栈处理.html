@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>保留 at com.qianfan123. 开头的行 — 上下布局</title>
+  <title>堆栈过滤 — 保留应用代码行</title>
   <style>
     body {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -53,7 +53,7 @@
   </style>
 </head>
 <body>
-  <h1>自动过滤 — 仅保留以 <code>at com.qianfan123.</code> 开头的行</h1>
+  <h1>自动过滤 — 仅保留 <code>at com.qianfan123.</code> 或 <code>at cn.wanda.sail.</code> 开头的行</h1>
 
   <div class="panel">
     <label for="input">输入（多行堆栈或文本）</label>
@@ -68,8 +68,7 @@
   </div>
 
   <div class="footer">
-    规则：匹配条件为“行首（允许前导空白）紧接着字样 <code>at</code>，然后空格，再跟 <code>com.qianfan123.</code>”。  
-    例如：<code>at com.qianfan123.xxx.Class.method(...)</code>
+    规则：匹配条件为"行首（允许前导空白）紧接着字样 <code>at</code>，然后空格，再跟 <code>com.qianfan123.</code> 或 <code>cn.wanda.sail.</code>"。
   </div>
 
   <div id="toast">已复制到剪贴板</div>
@@ -81,7 +80,7 @@
       const countEl = document.getElementById('count');
       const toastEl = document.getElementById('toast');
 
-      const matchRegex = /^\s*at\s+com\.qianfan123\./;
+      const matchRegex = /^\s*at\s+(com\.qianfan123\.|cn\.wanda\.sail\.)/;
 
       function process(text) {
         if (!text) {
@@ -106,7 +105,6 @@
         if (!outputEl.value) return;
         try {
           await navigator.clipboard.writeText(outputEl.value);
-          // 显示提示
           toastEl.classList.add('show');
           setTimeout(() => toastEl.classList.remove('show'), 1500);
         } catch (err) {
