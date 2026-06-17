@@ -53,7 +53,7 @@
   </style>
 </head>
 <body>
-  <h1>自动过滤 — 仅保留 <code>at com.qianfan123.</code> 或 <code>at cn.wanda.sail.</code> 开头的行</h1>
+  <h1>堆栈过滤 — 日志/异常行原样保留，<code>at</code> 堆栈行仅保留应用代码：<code>com.hd123</code> / <code>com.qianfan123</code> / <code>com.heading123</code> / <code>cn.wanda.sail</code></h1>
 
   <div class="panel">
     <label for="input">输入（多行堆栈或文本）</label>
@@ -64,11 +64,11 @@
   <div class="panel">
     <label for="output">输出（点击即自动复制）</label>
     <textarea id="output" readonly placeholder="符合条件的行会显示在这里，点击即可复制"></textarea>
-    <div class="counter">匹配行数：<span id="count">0</span></div>
+    <div class="counter"><span id="count">过滤 0 行 / 保留 0 行堆栈</span></div>
   </div>
 
   <div class="footer">
-    规则：匹配条件为"行首（允许前导空白）紧接着字样 <code>at</code>，然后空格，再跟 <code>com.qianfan123.</code> 或 <code>cn.wanda.sail.</code>"。
+    规则：非 <code>at&nbsp;</code> 行（时间日志、异常信息、续行等）<b>原样保留，不做处理</b>；仅对以 <code>at&nbsp;</code> 开头的堆栈行过滤——类名以 <code>com.hd123</code> / <code>com.qianfan123</code> / <code>com.heading123</code> / <code>cn.wanda.sail</code> 开头的保留，其余（<code>jdk.</code>、<code>java.</code>、<code>org.springframework.</code> 等）过滤掉。
   </div>
 
   <div id="toast">已复制到剪贴板</div>
@@ -80,18 +80,35 @@
       const countEl = document.getElementById('count');
       const toastEl = document.getElementById('toast');
 
-      const matchRegex = /^\s*at\s+(com\.qianfan123\.|cn\.wanda\.sail\.)/;
+      // 需要保留的应用代码包前缀（"at " 行中类名以此开头才保留）
+      const prefixes = ['com.hd123', 'com.qianfan123', 'com.heading123', 'cn.wanda.sail'];
+      const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // 需要保留的堆栈行：以 "at " 开头且类名以指定前缀开头（后接 . 或行尾）
+      const keepRe = new RegExp('^\\s*at\\s+(' + prefixes.map(escapeRe).join('|') + ')(\\.|$)');
+      // 任意堆栈行：以 "at " 开头
+      const atRe = /^\s*at\s+/;
 
       function process(text) {
         if (!text) {
           outputEl.value = '';
-          countEl.textContent = '0';
+          countEl.textContent = '过滤 0 行 / 保留 0 行堆栈';
           return;
         }
         const lines = text.split(/\r\n|\r|\n/);
-        const kept = lines.filter(line => matchRegex.test(line));
+        let removed = 0, keptAt = 0;
+        const kept = [];
+        for (const line of lines) {
+          if (atRe.test(line)) {
+            // 堆栈行：仅保留命中应用代码前缀的，其余过滤
+            if (keepRe.test(line)) { kept.push(line); keptAt++; }
+            else removed++;
+          } else {
+            // 非堆栈行（日志、异常信息、续行等）原样保留，不做处理
+            kept.push(line);
+          }
+        }
         outputEl.value = kept.join('\n');
-        countEl.textContent = String(kept.length);
+        countEl.textContent = `过滤 ${removed} 行 / 保留 ${keptAt} 行堆栈`;
       }
 
       inputEl.addEventListener('input', () => process(inputEl.value));
