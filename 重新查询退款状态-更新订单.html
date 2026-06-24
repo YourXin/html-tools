@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量生成退款curl命令</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0d1117;
+            color: #e6edf3;
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            padding: 30px 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sub {
+            color: #8b949e;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .row > * {
+            flex: 1;
+            min-width: 280px;
+        }
+        textarea {
+            width: 100%;
+            height: 320px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            color: #e6edf3;
+            font-size: 14px;
+            font-family: 'Menlo', 'Cascadia Code', 'Consolas', monospace;
+            padding: 14px 16px;
+            resize: vertical;
+            outline: none;
+            transition: border 0.2s;
+            line-height: 1.7;
+        }
+        textarea:focus {
+            border-color: #58a6ff;
+        }
+        textarea::placeholder {
+            color: #484f58;
+        }
+        .output-wrap {
+            position: relative;
+        }
+        #output {
+            width: 100%;
+            height: 320px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            color: #e6edf3;
+            font-size: 13px;
+            font-family: 'Menlo', 'Cascadia Code', 'Consolas', monospace;
+            padding: 14px 16px;
+            resize: vertical;
+            outline: none;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-y: auto;
+        }
+        #output:empty::before {
+            content: '等待生成...';
+            color: #484f58;
+        }
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin: 14px 0 18px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: #238636;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #2ea043;
+        }
+        .btn-secondary {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+        .btn-copy {
+            background: #1f6feb;
+            color: #fff;
+        }
+        .btn-copy:hover {
+            background: #388bfd;
+        }
+        .stats {
+            font-size: 13px;
+            color: #8b949e;
+            margin-top: 6px;
+        }
+        .stats span {
+            color: #e6edf3;
+            font-weight: 600;
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #238636;
+            color: #fff;
+            padding: 10px 28px;
+            border-radius: 30px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        .hint {
+            color: #8b949e;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        @media (max-width: 650px) {
+            .row { flex-direction: column; }
+            textarea, #output { height: 200px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🧾 批量生成 curl</h1>
+    <div class="sub">粘贴退款单号（每行一个），一键生成所有 curl 命令</div>
+
+    <div class="row">
+        <div>
+            <textarea id="input" placeholder="粘贴单号，每行一个&#10;例如：&#10;1262151814946496512&#10;1262151810961907712&#10;1262151807140896768"></textarea>
+            <div class="hint">支持空格/换行分隔，自动提取数字</div>
+        </div>
+        <div class="output-wrap">
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn btn-primary" id="generateBtn">⚡ 生成 curl</button>
+        <button class="btn btn-copy" id="copyBtn">📋 复制全部</button>
+        <button class="btn btn-secondary" id="clearBtn">🗑️ 清空</button>
+        <button class="btn btn-secondary" id="sampleBtn">📥 填入示例</button>
+    </div>
+
+    <div class="stats">共 <span id="count">0</span> 个单号</div>
+
+    <div class="toast" id="toast">✅ 已复制到剪贴板</div>
+</div>
+
+<script>
+    // ---------- 固定参数 ----------
+    const BASE_URL = '127.0.0.1:7130/sail/wxsite/wxa/pay/v1/queryRefund';
+    const HEADERS = {
+        'orgcode': '9999',
+        'tenantId': '10000',
+        'workingOrgCode': '9999',
+        'code': '9999',
+        'uuid': 'Fl0z1r6d4eekdh',
+        'Content-Type': 'application/json'
+    };
+    const FIXED_BODY = {
+        appId: 'wxbd0d4aa6982d285f',
+        sceneInfo: 'pointShop',
+        orgCode: 'Z01002',
+        orgName: 'Z01002'
+    };
+
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const countSpan = document.getElementById('count');
+    const toast = document.getElementById('toast');
+
+    // ---------- 提取数字 ----------
+    function extractNumbers(text) {
+        const matches = text.match(/\d{10,}/g);
+        if (!matches) return [];
+        // 去重 + 过滤长度>10
+        const unique = [...new Set(matches)];
+        return unique.filter(n => n.length >= 10);
+    }
+
+    // ---------- 生成单个 curl ----------
+    function buildCurl(outRefundNo) {
+        const body = { ...FIXED_BODY, outRefundNo };
+        const headersStr = Object.entries(HEADERS)
+            .map(([k, v]) => `--header '${k}: ${v}'`)
+            .join(' \\\n  ');
+
+        return `curl --location --request POST '${BASE_URL}' \\\n  ${headersStr} \\\n  --data-raw '${JSON.stringify(body)}'`;
+    }
+
+    // ---------- 生成全部 ----------
+    function generate() {
+        const raw = input.value;
+        const numbers = extractNumbers(raw);
+        if (numbers.length === 0) {
+            output.textContent = '⚠️ 未识别到有效的单号（至少10位数字）';
+            countSpan.textContent = '0';
+            return;
+        }
+
+        const commands = numbers.map((no, i) => {
+            return `# ===== 单号 ${i + 1}: ${no} =====\n${buildCurl(no)}`;
+        });
+
+        output.textContent = commands.join('\n\n');
+        countSpan.textContent = numbers.length;
+    }
+
+    // ---------- 复制 ----------
+    function copyAll() {
+        const text = output.textContent;
+        if (!text || text.includes('未识别到') || text.includes('等待生成')) {
+            showToast('⚠️ 没有可复制的内容，请先生成');
+            return;
+        }
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('✅ 已复制 ' + countSpan.textContent + ' 条 curl 命令');
+        }).catch(() => {
+            // fallback
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+            showToast('✅ 已复制到剪贴板');
+        });
+    }
+
+    // ---------- Toast ----------
+    let toastTimer = null;
+    function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2500);
+    }
+
+    // ---------- 清空 ----------
+    function clearAll() {
+        input.value = '';
+        output.textContent = '';
+        countSpan.textContent = '0';
+    }
+
+    // ---------- 填入示例 ----------
+    function loadSample() {
+        input.value = `1262151814946496512
+1262151810961907712
+1262151807140896768
+1262151795631726592
+1262151788056813568
+1262151780515454976
+1262151776790913024
+1262151773137674240
+1262151769509601280
+1262151764799397888
+1262151760932249600
+1262151757132210176
+1262151753307004928
+1262151749519548416`;
+        generate();
+    }
+
+    // ---------- 自动生成（防抖） ----------
+    let debounceTimer = null;
+    input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(generate, 400);
+    });
+
+    // ---------- 绑定按钮 ----------
+    document.getElementById('generateBtn').addEventListener('click', generate);
+    document.getElementById('copyBtn').addEventListener('click', copyAll);
+    document.getElementById('clearBtn').addEventListener('click', clearAll);
+    document.getElementById('sampleBtn').addEventListener('click', loadSample);
+
+    // ---------- 初始加载示例 ----------
+    loadSample();
+</script>
+</body>
+</html>
