@@ -2,53 +2,66 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>JSON压缩转义工具</title>
+  <title>JSON 格式化/压缩/转义工具</title>
   <style>
     body {
-      font-family: "Microsoft YaHei", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
       background-color: #f4f6f8;
       margin: 0;
       padding: 20px;
+      color: #333;
     }
 
     h2 {
-      color: #333;
+      margin-top: 0;
+      color: #1a2233;
     }
 
     textarea {
       width: 100%;
-      height: 400px;
+      height: 420px;
       padding: 12px;
-      font-family: monospace;
+      font-family: Consolas, Monaco, monospace;
       font-size: 14px;
       border: 1px solid #ccc;
       border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
       resize: vertical;
       box-sizing: border-box;
       background-color: #fff;
+      line-height: 1.45;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #4a90e2;
+      box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
     }
 
     .error-tip {
-      color: red;
       margin-top: 8px;
       font-size: 14px;
+      min-height: 20px;
+      font-weight: 500;
     }
 
     .button-bar {
       margin-top: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .button-bar button {
       background-color: #4a90e2;
       border: none;
       color: white;
-      padding: 10px 16px;
-      margin: 5px 4px;
+      padding: 9px 16px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
-      transition: background-color 0.3s ease;
+      font-weight: 500;
+      transition: background-color 0.2s ease, transform 0.1s ease;
     }
 
     .button-bar button:hover {
@@ -56,35 +69,40 @@
     }
 
     .button-bar button:active {
-      background-color: #2d639b;
+      transform: scale(0.98);
+    }
+
+    .button-bar button.secondary {
+      background-color: #6c757d;
+    }
+    .button-bar button.secondary:hover {
+      background-color: #5a6268;
     }
 
     .button-bar button.copy {
       background-color: #4caf50;
+      margin-left: auto;
     }
-
     .button-bar button.copy:hover {
       background-color: #45a045;
-    }
-
-    .button-bar button.copy:active {
-      background-color: #3b8c3b;
     }
   </style>
 </head>
 <body>
-  <h2>JSON压缩转义工具</h2>
-  <textarea id="jsonInput" placeholder="粘贴或输入JSON内容..."></textarea>
+  <h2>JSON 格式化 / 压缩 / 去除换行工具</h2>
+  <textarea id="jsonInput" placeholder="粘贴或输入 JSON 内容..."></textarea>
   <div id="errorTip" class="error-tip"></div>
 
   <div class="button-bar">
-    <button onclick="formatJson()">转义</button>
+    <button onclick="formatJson()">格式化</button>
     <button onclick="minifyJson()">压缩</button>
-    <button onclick="formatAndMinify()">压缩并转义</button>
+    <button onclick="trimJson()">去除换行/空格</button>
+    <button onclick="escapeJson()">转义</button>
     <button onclick="unescapeJson()">去除转义</button>
     <button onclick="unicodeToCn()">Unicode转中文</button>
     <button onclick="cnToUnicode()">中文转Unicode</button>
-    <button onclick="cnPunctToEn()">中文符号转英文符号</button>
+    <button onclick="cnPunctToEn()">中文符号转英文</button>
+    <button class="secondary" onclick="clearInput()">清空</button>
     <button class="copy" onclick="copyToClipboard()">复制</button>
   </div>
 
@@ -92,7 +110,8 @@
     const textarea = document.getElementById('jsonInput');
     const errorTip = document.getElementById('errorTip');
 
-    function showError(msg) {
+    function showError(msg, isSuccess = false) {
+      errorTip.style.color = isSuccess ? '#2e7d32' : '#d32f2f';
       errorTip.textContent = msg;
     }
 
@@ -100,91 +119,153 @@
       errorTip.textContent = '';
     }
 
-    // 自动格式化（仅当合法时）
+    // 实时校验状态提示（不上屏改写）
     textarea.addEventListener('input', () => {
-      try {
-        const json = JSON.parse(textarea.value);
-        textarea.value = JSON.stringify(json, null, 2);
+      const val = textarea.value.trim();
+      if (!val) {
         clearError();
+        return;
+      }
+      try {
+        JSON.parse(val.replace(/\r?\n/g, ''));
+        showError("JSON 校验通过", true);
       } catch (e) {
         showError("无效的 JSON 数据");
       }
     });
 
+    // 解析 JSON 助手函数（尝试直接解析或去除换行后解析）
+    function parseJsonHelper(val) {
+      val = val.trim();
+      try {
+        return JSON.parse(val);
+      } catch (e1) {
+        const cleaned = val.replace(/\r?\n/g, '');
+        return JSON.parse(cleaned);
+      }
+    }
+
+    // 格式化（美化）
     function formatJson() {
+      if (!textarea.value.trim()) return;
       try {
-        const obj = JSON.parse(textarea.value);
+        const obj = parseJsonHelper(textarea.value);
         textarea.value = JSON.stringify(obj, null, 2);
-        clearError();
+        showError("格式化成功", true);
       } catch (e) {
         showError("无效的 JSON 数据");
       }
     }
 
+    // 压缩
     function minifyJson() {
+      if (!textarea.value.trim()) return;
       try {
-        const obj = JSON.parse(textarea.value);
+        const obj = parseJsonHelper(textarea.value);
         textarea.value = JSON.stringify(obj);
-        clearError();
+        showError("压缩成功", true);
       } catch (e) {
         showError("无效的 JSON 数据");
       }
     }
 
-    function formatAndMinify() {
+    // 去除换行/空格 (整合自 json_trim.html)
+    function trimJson() {
+      const raw = textarea.value;
+      if (!raw.trim()) return;
+
       try {
-        const obj = JSON.parse(textarea.value);
-        textarea.value = JSON.stringify(obj);
-        clearError();
+        // 先去除所有换行
+        const cleaned = raw.replace(/\r?\n/g, '').trim();
+        const obj = JSON.parse(cleaned);
+        textarea.value = JSON.stringify(obj, null, 2);
+        showError("去除换行并格式化成功", true);
       } catch (e) {
-        showError("无效的 JSON 数据");
+        // 尝试仅仅去除换行
+        textarea.value = raw.replace(/\r?\n/g, '').trim();
+        showError("已去除换行", true);
       }
     }
 
-    function unescapeJson() {
+    // 转义 JSON
+    function escapeJson() {
+      if (!textarea.value) return;
       try {
-        textarea.value = JSON.parse('"' + textarea.value.replace(/"/g, '\\"') + '"');
-        clearError();
+        textarea.value = JSON.stringify(textarea.value);
+        showError("转义成功", true);
       } catch (e) {
         showError("转义失败");
       }
     }
 
+    // 去除转义
+    function unescapeJson() {
+      if (!textarea.value) return;
+      try {
+        let str = textarea.value.trim();
+        if (str.startsWith('"') && str.endsWith('"')) {
+          textarea.value = JSON.parse(str);
+        } else {
+          textarea.value = JSON.parse('"' + str.replace(/"/g, '\\"') + '"');
+        }
+        showError("去除转义成功", true);
+      } catch (e) {
+        showError("去除转义失败");
+      }
+    }
+
+    // Unicode 转中文
     function unicodeToCn() {
+      if (!textarea.value) return;
       textarea.value = textarea.value.replace(/\\u[\dA-Fa-f]{4}/g, match =>
         String.fromCharCode(parseInt(match.replace("\\u", ""), 16))
       );
-      clearError();
+      showError("Unicode 转中文完成", true);
     }
 
+    // 中文转 Unicode
     function cnToUnicode() {
+      if (!textarea.value) return;
       textarea.value = textarea.value.replace(/[\u4e00-\u9fa5]/g, ch =>
         "\\u" + ch.charCodeAt(0).toString(16).padStart(4, '0')
       );
-      clearError();
+      showError("中文转 Unicode 完成", true);
     }
 
+    // 中文标点转英文
     function cnPunctToEn() {
+      if (!textarea.value) return;
       const map = {
         '，': ',', '。': '.', '！': '!', '？': '?', '：': ':',
         '；': ';', '（': '(', '）': ')', '【': '[', '】': ']',
         '“': '"', '”': '"', '‘': "'", '’': "'", '、': ','
       };
       textarea.value = textarea.value.replace(/[\u3000-\u303F\uFF00-\uFFEF]/g, ch => map[ch] || ch);
+      showError("中文标点已转英文", true);
+    }
+
+    // 清空
+    function clearInput() {
+      textarea.value = '';
       clearError();
     }
 
+    // 复制到剪贴板
     function copyToClipboard() {
+      if (!textarea.value) return;
       textarea.select();
-      document.execCommand('copy');
-      clearError();
-      // 可选：添加绿色小提示
-      errorTip.style.color = 'green';
-      errorTip.textContent = "已复制到剪贴板";
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch (e) {}
+      if (!ok && navigator.clipboard) {
+        navigator.clipboard.writeText(textarea.value);
+        ok = true;
+      }
+      showError(ok ? "已复制到剪贴板" : "复制失败", ok);
       setTimeout(() => {
-        errorTip.textContent = '';
-        errorTip.style.color = 'red';
-      }, 1500);
+        if (ok) clearError();
+      }, 1800);
     }
   </script>
 </body>

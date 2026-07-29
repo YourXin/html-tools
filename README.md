@@ -24,8 +24,7 @@
 ### 📦 JSON 工具
 | 工具 | 说明 |
 |---|---|
-| **JSON 压缩/转义** | 格式化、压缩、Unicode 互转、中文标点转英文 |
-| **JSON Formatter** | JSON 美化与精简 |
+| **JSON 格式化/压缩/转义** | 格式化、去除换行/空格、压缩、Unicode 互转、中文标点转英文 |
 | **JSON 问答表格解析器** | 从 JSON 提取问答对（"提取龙珠"业务） |
 | **龙湖 JSON 转问答** | 龙湖数据 JSON → 问答表格 |
 
@@ -104,8 +103,7 @@ html-tools/
 ├── 128-decrpyt.html                 # AES-CBC 解密 (Base64)
 ├── aes-decrpyt (2).html             # AES-128-CBC (Hex)
 │
-├── json-format.html                 # JSON 压缩/转义
-├── json_trim.html                   # JSON Formatter
+├── json-format.html                 # JSON 格式化/压缩/转义/去换行
 ├── 提取龙珠.html                    # JSON 问答解析
 ├── 龙湖-转问答.html                 # 龙湖 JSON 转问答
 │
