@@ -89,7 +89,7 @@
   </style>
 </head>
 <body>
-  <h2>JSON 格式化 / 压缩 / 去除换行工具</h2>
+  <h2>JSON 格式化 / 压缩 / 转义工具</h2>
   <textarea id="jsonInput" placeholder="粘贴或输入 JSON 内容..."></textarea>
   <div id="errorTip" class="error-tip"></div>
 
@@ -97,7 +97,7 @@
     <button onclick="formatJson()">格式化</button>
     <button onclick="minifyJson()">压缩</button>
     <button onclick="trimJson()">去除换行/空格</button>
-    <button onclick="escapeJson()">转义</button>
+    <button onclick="escapeJson()">转义(压缩转义)</button>
     <button onclick="unescapeJson()">去除转义</button>
     <button onclick="unicodeToCn()">Unicode转中文</button>
     <button onclick="cnToUnicode()">中文转Unicode</button>
@@ -119,7 +119,7 @@
       errorTip.textContent = '';
     }
 
-    // 实时校验状态提示（不上屏改写）
+    // 实时校验状态提示
     textarea.addEventListener('input', () => {
       const val = textarea.value.trim();
       if (!val) {
@@ -134,7 +134,7 @@
       }
     });
 
-    // 解析 JSON 助手函数（尝试直接解析或去除换行后解析）
+    // 解析 JSON 助手函数
     function parseJsonHelper(val) {
       val = val.trim();
       try {
@@ -169,32 +169,35 @@
       }
     }
 
-    // 去除换行/空格 (整合自 json_trim.html)
+    // 去除换行/空格
     function trimJson() {
       const raw = textarea.value;
       if (!raw.trim()) return;
 
       try {
-        // 先去除所有换行
         const cleaned = raw.replace(/\r?\n/g, '').trim();
         const obj = JSON.parse(cleaned);
         textarea.value = JSON.stringify(obj, null, 2);
         showError("去除换行并格式化成功", true);
       } catch (e) {
-        // 尝试仅仅去除换行
         textarea.value = raw.replace(/\r?\n/g, '').trim();
         showError("已去除换行", true);
       }
     }
 
-    // 转义 JSON
+    // 转义 JSON (智能模式：合法 JSON 先压缩再转义，生成字符串字面量)
     function escapeJson() {
-      if (!textarea.value) return;
+      const val = textarea.value.trim();
+      if (!val) return;
       try {
-        textarea.value = JSON.stringify(textarea.value);
-        showError("转义成功", true);
+        const obj = parseJsonHelper(val);
+        // 先压缩为单行 JSON 字符串，再转义双引号
+        textarea.value = JSON.stringify(JSON.stringify(obj));
+        showError("压缩并转义成功", true);
       } catch (e) {
-        showError("转义失败");
+        // 非合法 JSON 则直接对当前字符串整体转义
+        textarea.value = JSON.stringify(val);
+        showError("文本转义成功", true);
       }
     }
 
