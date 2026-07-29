@@ -97,7 +97,8 @@
     <button onclick="formatJson()">格式化</button>
     <button onclick="minifyJson()">压缩</button>
     <button onclick="trimJson()">去除换行/空格</button>
-    <button onclick="escapeJson()">转义(压缩转义)</button>
+    <button onclick="escapeRaw()">原样转义</button>
+    <button onclick="escapeMinified()">压缩并转义</button>
     <button onclick="unescapeJson()">去除转义</button>
     <button onclick="unicodeToCn()">Unicode转中文</button>
     <button onclick="cnToUnicode()">中文转Unicode</button>
@@ -145,7 +146,7 @@
       }
     }
 
-    // 格式化（美化）
+    // 1. 格式化（美化）
     function formatJson() {
       if (!textarea.value.trim()) return;
       try {
@@ -157,7 +158,7 @@
       }
     }
 
-    // 压缩
+    // 2. 压缩
     function minifyJson() {
       if (!textarea.value.trim()) return;
       try {
@@ -169,7 +170,7 @@
       }
     }
 
-    // 去除换行/空格
+    // 3. 去除换行/空格
     function trimJson() {
       const raw = textarea.value;
       if (!raw.trim()) return;
@@ -185,23 +186,29 @@
       }
     }
 
-    // 转义 JSON (智能模式：合法 JSON 先压缩再转义，生成字符串字面量)
-    function escapeJson() {
+    // 4. 原样转义：直接转义当前文本（不进行压缩或格式化改变，保留原样的换行与缩进）
+    function escapeRaw() {
+      const val = textarea.value;
+      if (!val) return;
+      textarea.value = JSON.stringify(val);
+      showError("原样转义成功", true);
+    }
+
+    // 5. 压缩并转义：先压缩为单行 JSON，再转义为双引号包裹字符串
+    function escapeMinified() {
       const val = textarea.value.trim();
       if (!val) return;
       try {
         const obj = parseJsonHelper(val);
-        // 先压缩为单行 JSON 字符串，再转义双引号
         textarea.value = JSON.stringify(JSON.stringify(obj));
         showError("压缩并转义成功", true);
       } catch (e) {
-        // 非合法 JSON 则直接对当前字符串整体转义
         textarea.value = JSON.stringify(val);
-        showError("文本转义成功", true);
+        showError("纯文本转义成功", true);
       }
     }
 
-    // 去除转义
+    // 6. 去除转义
     function unescapeJson() {
       if (!textarea.value) return;
       try {
@@ -217,7 +224,7 @@
       }
     }
 
-    // Unicode 转中文
+    // 7. Unicode 转中文
     function unicodeToCn() {
       if (!textarea.value) return;
       textarea.value = textarea.value.replace(/\\u[\dA-Fa-f]{4}/g, match =>
@@ -226,7 +233,7 @@
       showError("Unicode 转中文完成", true);
     }
 
-    // 中文转 Unicode
+    // 8. 中文转 Unicode
     function cnToUnicode() {
       if (!textarea.value) return;
       textarea.value = textarea.value.replace(/[\u4e00-\u9fa5]/g, ch =>
@@ -235,7 +242,7 @@
       showError("中文转 Unicode 完成", true);
     }
 
-    // 中文标点转英文
+    // 9. 中文标点转英文
     function cnPunctToEn() {
       if (!textarea.value) return;
       const map = {
@@ -247,13 +254,13 @@
       showError("中文标点已转英文", true);
     }
 
-    // 清空
+    // 10. 清空
     function clearInput() {
       textarea.value = '';
       clearError();
     }
 
-    // 复制到剪贴板
+    // 11. 复制到剪贴板
     function copyToClipboard() {
       if (!textarea.value) return;
       textarea.select();
