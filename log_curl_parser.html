@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Log → Curl Converter</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    max-width: 1300px;
+    margin: 20px auto;
+    padding: 0 20px;
+    background: #f4f5f7;
+    color: #222;
+  }
+  h1 { margin: 0 0 4px; color: #222; }
+  .subtitle { margin: 0 0 20px; color: #666; font-size: 14px; }
+  .panel {
+    background: #fff;
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    margin-bottom: 14px;
+  }
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .panel-title { font-weight: 600; color: #444; font-size: 14px; }
+  textarea {
+    width: 100%;
+    min-height: 220px;
+    border: 1px solid #d0d4da;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    resize: vertical;
+    background: #fafbfc;
+  }
+  textarea:focus { outline: none; border-color: #4a90e2; background: #fff; }
+  textarea[readonly] { background: #1e1e1e; color: #d4d4d4; }
+  .row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 6px 0 10px;
+  }
+  button {
+    padding: 8px 16px;
+    background: #2563eb;
+    color: #fff;
+    border: 0;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  button:hover { background: #1d4ed8; }
+  button.secondary { background: #64748b; }
+  button.secondary:hover { background: #475569; }
+  .options {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-left: auto;
+    font-size: 13px;
+    color: #475569;
+  }
+  .options label { display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #e0e7ff;
+    color: #3730a3;
+    border-radius: 10px;
+    font-size: 11px;
+    margin-left: 8px;
+  }
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #10b981;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 5px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    font-size: 13px;
+  }
+  .toast.show { opacity: 1; }
+  details summary { cursor: pointer; color: #2563eb; font-size: 13px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<h1>Log → Curl Converter <span class="pill">Spring Boot observation → curl</span></h1>
+<p class="subtitle">Paste the raw log content (URL + header block + body) and convert to a runnable curl command.</p>
+
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">Input (raw log content)</div>
+    <div>
+      <button class="secondary" onclick="loadExample()">Load Example</button>
+      <button class="secondary" onclick="clearAll()">Clear</button>
+    </div>
+  </div>
+  <textarea id="input" placeholder="Paste the raw log content here..."></textarea>
+</div>
+
+<div class="row">
+  <button onclick="convert()">Convert → Curl</button>
+  <div class="options">
+    <label><input type="checkbox" id="skipContentLength" checked> Skip content-length</label>
+    <label><input type="checkbox" id="skipHost" checked> Skip host</label>
+    <label><input type="checkbox" id="skipAcceptEncoding"> Skip accept-encoding</label>
+    <label><input type="checkbox" id="insecure" checked> Add -k (HTTPS)</label>
+    <label><input type="checkbox" id="singleLine"> Single line</label>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">Output (curl command)</div>
+    <div>
+      <button class="secondary" onclick="copyOutput()">Copy</button>
+    </div>
+  </div>
+  <textarea id="output" readonly placeholder="The converted curl command will appear here..."></textarea>
+  <details style="margin-top:10px;">
+    <summary>Parse details (URL / method / headers / body)</summary>
+    <pre id="debug" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px; padding:10px; font-size:12px; max-height:300px; overflow:auto; margin-top:6px;"></pre>
+  </details>
+</div>
+
+<div class="toast" id="toast">Copied to clipboard</div>
+
+<script>
+  const EXAMPLE = `http://10.157.163.61:6090/sail/point/photograph/addheader:{referer=https://servicewechat.com/wx58e799ceedfcb27c/0/page-frame.html, remote-host=222.212.1.18, content-length=403, accept-language=zh-CN,zh;q=0.9, currentpageroute=pages/score/self/index, orgcode=hmxx, authorizationinf=MD5 appid="wx58e799ceedfcb27c",nonce_str="75ED7AB4251D4681BE19EAAC3326FA34",signature="4f444fda708b1889e06b2920abd22304",timestamp="1780650963", x-forwarded-for=222.212.1.18, userid=1261729447069880320, accept=*/*, x-real-ip=127.0.0.1, tenantid=10000, host=10.157.163.61:6090, content-type=application/json, connection=keep-alive, x-scheme=http, accept-encoding=gzip, deflate, br, user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 MicroMessenger/7.0.20.1781(0x6700143B) NetType/WIFI MiniProgramEnv/Windows WindowsWechat/WMPF WindowsWechat(0x63090a13) UnifiedPCWindowsWechat(0xf2541939) XWEB/19841, username=%E5%BE%AE%E4%BF%A1%E7%94%A8%E6%88%B73798}param:{}attributes:{org.springframework.web.filter.ServerHttpObservationFilter.observation={name=http.server.requests(null), error=null, context=name='http.server.requests', contextualName='null', error='null', lowCardinalityKeyValues=[exception='none', method='POST', outcome='SUCCESS', status='200', uri='UNKNOWN'], highCardinalityKeyValues=[http.url='/sail/point/photograph/add'], map=[class io.micrometer.core.instrument.Timer$Sample='io.micrometer.core.instrument.Timer$Sample@408caf6c', class io.micrometer.core.instrument.LongTaskTimer$Sample='SampleImpl{duration(seconds)=7.14011E-4, duration(nanos)=714011.0, startTimeNanos=10881344621173708}'], parentObservation=null}, formContentFilter.FILTERED=true, requestContextFilter.FILTERED=true, characterEncodingFilter.FILTERED=true, org.springframework.web.filter.ServerHttpObservationFilter.context=name='http.server.requests', contextualName='null', error='null', lowCardinalityKeyValues=[exception='none', method='POST', outcome='SUCCESS', status='200', uri='UNKNOWN'], highCardinalityKeyValues=[http.url='/sail/point/photograph/add'], map=[class io.micrometer.core.instrument.Timer$Sample='io.micrometer.core.instrument.Timer$Sample@408caf6c', class io.micrometer.core.instrument.LongTaskTimer$Sample='SampleImpl{duration(seconds)=9.01952E-4, duration(nanos)=901952.0, startTimeNanos=10881344621173708}'], parentObservation=null, webMvcObservationFilter.FILTERED=true}body:{"orgCode":"hmxx","memberId":"1261729447069880320","storeCode":"","serialNumber":"","consumptionTime":"","imageKey":[{"imageKey":"https://kj-dev-dmp-1258284995.cos.ap-shanghai.myqcloud.com/20260605/32469c76-a269-41d1-9a73-243dfdb3bdd1.png","imageSource":"album"}],"amount":null,"clientCode":"","appId":"wx58e799ceedfcb27c","openId":"o7BRA5frsRsGbx7pCC7-Sd69_X4Q","recognizeId":"","paymentVoucherKey":[]}`;
+
+  // Known HTTP header names (lowercase). Used to disambiguate commas inside values.
+  const KNOWN_HEADERS = new Set([
+    "accept","accept-charset","accept-datetime","accept-encoding","accept-language","accept-ranges",
+    "authorization","cache-control","connection","cookie","content-length","content-md5",
+    "content-type","date","expect","forwarded","from","host","if-match","if-modified-since",
+    "if-none-match","if-range","if-unmodified-since","max-forwards","origin","pragma","range",
+    "referer","te","trailer","transfer-encoding","upgrade","user-agent","via","warning",
+    "x-forwarded-for","x-forwarded-host","x-forwarded-port","x-forwarded-proto","x-forwarded-scheme",
+    "x-real-ip","x-request-id","x-requested-with","x-correlation-id","x-trace-id","x-csrf-token",
+    "x-scheme","x-frame-options","x-content-type-options","x-xss-protection",
+    // common custom ones from the example log
+    "tenant-id","tenantid","org-code","orgcode","user-id","userid","user-name","username",
+    "authorization-info","authorizationinf","current-page-route","currentpageroute",
+    "remote-host","appid","openid","clientid","client-id","store-code","storecode",
+    "serial-number","serialnumber","consumption-time","consumptiontime",
+    "image-key","imagekey","amount","payment-voucher-key","paymentvoucherkey",
+    "recognize-id","recognizeid","member-id","memberid",
+  ]);
+
+  function loadExample() {
+    document.getElementById("input").value = EXAMPLE;
+  }
+
+  // Auto-load the example on page load so the user sees a working output immediately
+  window.addEventListener("DOMContentLoaded", () => {
+    loadExample();
+    convert();
+  });
+  function clearAll() {
+    document.getElementById("input").value = "";
+    document.getElementById("output").value = "";
+    document.getElementById("debug").textContent = "";
+  }
+
+  function extractUrl(text) {
+    // Match http(s)://... up to (add)?header|param|body|attributes
+    const re = /(https?:\/\/\S+?)(?=(?:add)?(?:header|param|body|attributes):)/;
+    const m = text.match(re);
+    if (m) return m[1].trim();
+    const fb = text.match(/(https?:\/\/\S+)/);
+    return fb ? fb[1].trim() : null;
+  }
+
+  function extractBody(text) {
+    // Find the last "body:" optionally followed by whitespace and "{"
+    const re = /body:\s*\{/g;
+    let last = null, m;
+    while ((m = re.exec(text)) !== null) last = m;
+    if (!last) return null;
+    const start = last.index + last[0].length - 1; // position of "{"
+    let depth = 0, inStr = false, esc = false;
+    for (let i = start; i < text.length; i++) {
+      const c = text[i];
+      if (esc) { esc = false; continue; }
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === "{") depth++;
+      else if (c === "}") { depth--; if (depth === 0) return text.substring(start, i + 1); }
+    }
+    return null;
+  }
+
+  function extractHeaders(text) {
+    const startMatch = text.match(/(?:add)?header:\{/);
+    if (!startMatch) return {};
+    const startIdx = startMatch.index + startMatch[0].length - 1; // "{"
+    const after = text.substring(startIdx + 1);
+
+    // Find the earliest "}param:" / "}body:" / "}attributes:"
+    let endIdx = -1;
+    for (const pat of [/\}param:/, /\}body:/, /\}attributes:/]) {
+      const m = after.match(pat);
+      if (m && (endIdx === -1 || m.index < endIdx)) endIdx = m.index;
+    }
+    if (endIdx === -1) return {};
+    const headerStr = after.substring(0, endIdx);
+
+    // Find all key= positions
+    const re = /(?:^|,)\s*([a-zA-Z][a-zA-Z0-9-]*)\s*=/g;
+    const positions = [];
+    let m;
+    while ((m = re.exec(headerStr)) !== null) {
+      positions.push({ key: m[1], matchStart: m.index, valueStart: m.index + m[0].length });
+    }
+    // Keep only known header keys
+    const known = positions.filter(p => KNOWN_HEADERS.has(p.key.toLowerCase()));
+
+    const headers = {};
+    for (let i = 0; i < known.length; i++) {
+      const { key, valueStart } = known[i];
+      const end = i + 1 < known.length ? known[i + 1].matchStart : headerStr.length;
+      let value = headerStr.substring(valueStart, end);
+      value = value.replace(/^[,\s]+|[,\s]+$/g, "");
+      headers[key] = value;
+    }
+    return headers;
+  }
+
+  function detectMethod(text) {
+    // Look for method='POST' / method="POST" / method=POST in the attributes section
+    const m = text.match(/method\s*=\s*['"]?([A-Z]+)['"]?/i);
+    if (m) return m[1].toUpperCase();
+    // Default based on body presence
+    return /body:\s*\{/.test(text) ? "POST" : "GET";
+  }
+
+  // Wrap a value in single quotes, escaping any embedded single quotes for bash
+  function bashQuote(v) {
+    return "'" + String(v).replace(/'/g, "'\\''") + "'";
+  }
+
+  function convert() {
+    const input = document.getElementById("input").value;
+    if (!input.trim()) { showToast("Please paste the log content first", true); return; }
+
+    const url = extractUrl(input);
+    const headers = extractHeaders(input);
+    const body = extractBody(input);
+    const method = detectMethod(input);
+
+    if (!url) {
+      document.getElementById("output").value = "# Error: could not find URL in input";
+      document.getElementById("debug").textContent = "";
+      return;
+    }
+
+    const skipCL = document.getElementById("skipContentLength").checked;
+    const skipH  = document.getElementById("skipHost").checked;
+    const skipAE = document.getElementById("skipAcceptEncoding").checked;
+    const insecure = document.getElementById("insecure").checked;
+    const single = document.getElementById("singleLine").checked;
+
+    // Sort headers: content-type first, then alphabetically
+    const entries = Object.entries(headers).sort((a, b) => {
+      const al = a[0].toLowerCase(), bl = b[0].toLowerCase();
+      if (al === "content-type") return -1;
+      if (bl === "content-type") return 1;
+      return a[0].localeCompare(b[0]);
+    });
+
+    // Auto-detect gzip/br/deflate encoding → add --compressed so curl decodes the response
+    const acceptEnc = (headers["accept-encoding"] || "").toLowerCase();
+    const compressed = /\bgzip\b|\bbr\b|\bdeflate\b/.test(acceptEnc);
+
+    const parts = [];
+    let head = `curl -X ${method}`;
+    if (insecure && url.startsWith("https://")) head += " -k";
+    if (compressed) head += " --compressed";
+    head += ` ${bashQuote(url)}`;
+    parts.push(head);
+
+    for (const [k, v] of entries) {
+      const kl = k.toLowerCase();
+      if (skipCL && kl === "content-length") continue;
+      if (skipH  && kl === "host") continue;
+      if (skipAE && kl === "accept-encoding") continue;
+      parts.push(`  -H ${bashQuote(k + ": " + v)}`);
+    }
+
+    if (body) {
+      parts.push(`  --data-raw ${bashQuote(body)}`);
+    }
+
+    // Multi-line: each part joined with " \\\n  " for shell line continuation
+    const out = single ? parts.join(" ") : parts.join(" \\\n");
+    document.getElementById("output").value = out;
+
+    // Debug
+    const debug = {
+      url, method,
+      headerCount: entries.length,
+      headers: Object.fromEntries(entries),
+      bodyLength: body ? body.length : 0,
+      bodyPreview: body ? body.substring(0, 200) + (body.length > 200 ? "..." : "") : null,
+    };
+    document.getElementById("debug").textContent = JSON.stringify(debug, null, 2);
+  }
+
+  function copyOutput() {
+    const out = document.getElementById("output");
+    if (!out.value) { showToast("Nothing to copy", true); return; }
+    out.select();
+    out.setSelectionRange(0, out.value.length);
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch (e) {}
+    if (!ok && navigator.clipboard) {
+      navigator.clipboard.writeText(out.value).then(
+        () => showToast("Copied to clipboard"),
+        () => showToast("Copy failed", true)
+      );
+    } else {
+      showToast(ok ? "Copied to clipboard" : "Copy failed", !ok);
+    }
+  }
+
+  function showToast(msg, isError) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.background = isError ? "#ef4444" : "#10b981";
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 1600);
+  }
+</script>
+</body>
+</html>

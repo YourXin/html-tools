@@ -41,6 +41,7 @@
 | 工具 | 说明 |
 |---|---|
 | **日志按时间合并** | 多源日志按时间戳对齐合并 |
+| **日志转 cURL** | Spring Boot Observation / URL 日志解析转 runnable cURL |
 | **堆栈过滤** | 仅保留 `com.qianfan123.` 开头的栈行 |
 
 ### 💻 代码 / 文本
@@ -114,6 +115,7 @@ html-tools/
 ├── 生成积分商城补发sql.html         # 积分补发 SQL
 │
 ├── merge_logs_by_time.html          # 日志按时间合并
+├── log_curl_parser.html             # 日志转 cURL
 ├── 堆栈处理.html                    # 堆栈过滤
 │
 ├── sort_code.html                   # Java 代码排序
