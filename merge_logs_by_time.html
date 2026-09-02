@@ -405,13 +405,74 @@
       return a.sequence - b.sequence;
     }
 
-    function downloadBlob(blob) {
-      const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "");
+    function formatTimestamp(date = new Date()) {
+      const pad = (n) => String(n).padStart(2, "0");
+      const year = date.getFullYear();
+      const month = pad(date.getMonth() + 1);
+      const day = pad(date.getDate());
+      const hours = pad(date.getHours());
+      const minutes = pad(date.getMinutes());
+      const seconds = pad(date.getSeconds());
+      return `${year}${month}${day}${hours}${minutes}${seconds}`;
+    }
+
+    function getPrefixFromFilename(fileName) {
+      if (!fileName || typeof fileName !== "string") return "";
+
+      const trimmedName = fileName.trim();
+
+      // 1. 优先提取 _info (不区分大小写) 前面的内容
+      const lowerName = trimmedName.toLowerCase();
+      const infoIndex = lowerName.indexOf("_info");
+      if (infoIndex > 0) {
+        const prefix = trimmedName.slice(0, infoIndex).replace(/^[._\-\s]+|[._\-\s]+$/g, "").trim();
+        if (prefix) return prefix;
+      }
+
+      // 2. 如果没有 _info，去除常见扩展名 (.log.gz, .log, .gz, .txt 等)
+      let baseName = trimmedName
+        .replace(/\.(log|gz|txt|tar|zip)(\.(log|gz|txt))*$/i, "")
+        .replace(/\.[a-zA-Z0-9]+$/, "")
+        .replace(/^[._\-\s]+|[._\-\s]+$/g, "")
+        .trim();
+
+      if (!baseName) return "";
+
+      // 3. 去掉末尾的日期/时间/序号后缀（如 _2026-08-02, -20260802, .2026-08-02 等）
+      const dateSuffixMatch = baseName.match(/^(.*?)[._\-\s]\d{4}[-_.]?\d{2}[-_.]?\d{2}.*$/);
+      if (dateSuffixMatch && dateSuffixMatch[1]) {
+        baseName = dateSuffixMatch[1].replace(/^[._\-\s]+|[._\-\s]+$/g, "").trim();
+      }
+
+      // 4. 取第一个单词（支持字母、数字、中文、中划线等，如 marking-coupon）
+      const match = baseName.match(/^([a-zA-Z0-9\u4e00-\u9fa5\-]+)/);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+
+      const firstToken = baseName.split(/[_\s.]/)[0];
+      return (firstToken || "").trim();
+    }
+
+    function getPrefixFromFiles(files) {
+      if (!files || files.length === 0) return "";
+      for (const file of files) {
+        const prefix = getPrefixFromFilename(file.name);
+        if (prefix) return prefix;
+      }
+      return "";
+    }
+
+    function downloadBlob(blob, prefix = "") {
+      const stamp = formatTimestamp();
+      const filePrefix = prefix ? `${prefix}_` : "";
+      const fileName = `${filePrefix}merged_logs_${stamp}.log`;
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `merged_logs_${stamp}.log`;
+      link.download = fileName;
       link.click();
       setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      return fileName;
     }
 
     drop.addEventListener("dragover", (event) => {
@@ -444,8 +505,9 @@
       try {
         setStatus("正在读取并合并...");
         const { blob, entryCount } = await mergeFiles(selectedFiles);
-        downloadBlob(blob);
-        setStatus(`完成：合并 ${selectedFiles.length} 个文件，${entryCount} 条日志，输出大小 ${formatSize(blob.size)}。`);
+        const prefix = getPrefixFromFiles(selectedFiles);
+        const downloadedFileName = downloadBlob(blob, prefix);
+        setStatus(`完成：合并 ${selectedFiles.length} 个文件，${entryCount} 条日志，已导出为 ${downloadedFileName} (${formatSize(blob.size)})。`);
       } catch (error) {
         setStatus(`失败：${error.message}`);
       } finally {
